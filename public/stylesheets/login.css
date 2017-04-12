@@ -1,0 +1,136 @@
+* {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+p {
+    color:#999595;
+}
+
+body {
+    background-color: white;
+    font-family: '汉仪','黑体',sans-serif;
+}
+
+.formArea{
+    position: absolute;
+    padding-top:20px;
+    top:120px;
+    left:65%;
+    width:350px;
+    height:360px;
+    background:#FDFFFD;
+    border:2px solid whitesmoke;
+    border-radius: 5px;
+}
+.formArea h4{
+    color:black;
+    text-align: center;
+    letter-spacing: 8px;
+    margin-top: 20px;
+}
+.formArea input{
+    border-style:solid;
+    margin:15px 10% 15px 0%;
+    background-color: transparent;
+    width:100%;
+    color:black;
+}
+.formArea input::-webkit-input-placeholder {
+    color: #ccc!important;
+}
+.formArea::-moz-placeholder {
+    color: #ccc!important;
+}
+
+.loginBtn {
+    width: 80%;
+    margin:5px 10% 0px 10%;
+    line-height:40px;
+    background-color: #b01c2e;
+    color:white;
+    text-align: center;
+    font-size: 16px;
+    font-family: "Helvetica Neue Light", "Lucida Grande", "Calibri", "Arial", sans-serif;
+    font-weight: bold;
+    border-style: none;
+    border-radius: 5px;
+}
+.tongtu{
+    position: relative;
+    width:100%;
+    top:10px;
+    border:2px solid whitesmoke;
+    background-color: whitesmoke;
+    background-repeat:no-repeat;
+    background-position:center;
+    height:600px;
+}
+.logo{
+    position: relative;
+    top:5px;
+    height:70px;
+    width:210px;
+    margin-left: 10%;
+    text-align: left;
+    cursor: pointer;
+}
+.textBox{
+    position: absolute;
+    top:35%;
+    width:50%;
+    text-align: left;
+}
+.textBox h3{
+    color:black;
+    font-size:40px;
+    line-height: 50px;
+    font-weight: lighter;
+}
+
+a.third-login {
+    float:left;
+    margin-left: 62px;
+
+}
+#third-login {
+    text-align: center;
+}
+
+img.third-login-img {
+    width: 30px;
+    height: 30px;
+}
+.title {
+    font-size:16px;
+    margin-left:35px;
+    font-weight: bold;
+    font-family: "Helvetica Neue Light", "Lucida Grande", "Calibri", "Arial", sans-serif;
+    color:#48484b;
+}
+#input-button{
+    margin-left: 10%;
+    width:80%;
+    height:40px;
+}
+.loginPage{
+    width:100%;
+    position:relative;
+    height:100%;
+}
+#home_footer{
+    position:relative;
+    margin-top:50px;
+    text-align: center;
+}
+#home_footer a{
+    color:gray;
+}
+.bottomBar{
+    margin-top: 15px;
+}
+.foot-tag{
+    margin-left:20px;
+    margin-right:20px;
+}

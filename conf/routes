@@ -1,0 +1,16 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET     /                           controllers.Application.index
+GET     /homepage                           controllers.Application.homepage
+GET     /getuuid                    controllers.Application.getUuid
+#GET     /get2dcode                  controllers.Application.get2Dcode
+GET     /checkuserlogin             controllers.Application.checkUserLogin(uuid:String)
+GET     /test                       controllers.Application.test
+# Map static resources from the /public folder to the /assets URL path
+GET         /assets/lib/*file                      controllers.WebJarAssets.at(file)
+GET         /assets/*file                          controllers.Assets.at(path="/public", file)
+
+    

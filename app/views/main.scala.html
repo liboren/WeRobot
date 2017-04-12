@@ -1,0 +1,31 @@
+@(title: String,conf: Option[Map[String, String]])(content: Html)
+
+
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>@title</title>
+        @*<script src="@routes.Assets.at("javascripts/Plugins/flexible/flexible.js")"></script>*@
+        @*<link rel="stylesheet" href="@routes.Assets.at("stylesheets/bootstrap.min.css")">*@
+        <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/main.css")">
+        @*<link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/icon.png")">*@
+        <script src="@routes.Assets.at("javascripts/util.js")"></script>
+        <script src="@routes.WebJarAssets.at(WebJarAssets.fullPath("react","react.js"))"></script>
+        <script src="@routes.WebJarAssets.at(WebJarAssets.fullPath("react", "JSXTransformer.js"))"></script>
+        <script type="text/javascript" src="@routes.Assets.at("javascripts/jquery-1.9.0.min.js")" ></script>
+        @*<script type="text/javascript" src="@routes.Assets.at("javascripts/bootstrap.min.js")"></script>*@
+        <script>
+                if(!$CONF$){
+                    console.log("conf is empty");
+                    var $CONF$ = {};
+                }
+                @conf.getOrElse(Map()).map { case (key, value) =>
+                $CONF$['@key'] = '@value';
+                }
+                console.log($CONF$);
+        </script>
+    </head>
+    <body>
+    @content
+    </body>
+</html>

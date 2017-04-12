@@ -1,0 +1,112 @@
+
+
+<configuration>
+
+
+  <conversionRule conversionWord="coloredLevel" converterClass="play.api.Logger$ColoredLevel"/>
+
+
+
+  <property name="logDir" value="./target/universal/stage/logs"/>
+
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+
+    <!-- encoder 默认配置为PatternLayoutEncoder -->
+
+    <encoder>
+
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-4relative %-5level %logger{42} [%thread] %X{akkaSource} - %msg%n</pattern>
+
+    </encoder>
+
+  </appender>
+
+
+
+  <!--<appender name="FILE" class="ch.qos.logback.core.FileAppender">-->
+
+  <!--<file>${logDir}/application.log</file>-->
+
+  <!--<append>true</append>-->
+
+  <!--<encoder>-->
+
+  <!--<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-4relative %-5level %logger{42} [%thread] %X{akkaSource} - %msg%n</pattern>-->
+
+  <!--</encoder>-->
+
+  <!--</appender>-->
+
+  <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${logDir}/application.log</file>
+    <append>true</append>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <!-- daily rollover -->
+      <fileNamePattern>${logDir}/application.%d{yyyy-MM-dd}.log</fileNamePattern>
+      <!-- keep 365 days' worth of history -->
+      <maxHistory>365</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-4relative %-5level %logger{42} [%thread] %X{akkaSource} - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+
+
+  <appender name="ACCESS" class="ch.qos.logback.core.FileAppender">
+
+    <file>${logDir}/access.log</file>
+
+    <append>true</append>
+
+    <encoder>
+
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-4relative %-5level %logger{42} [%thread] %X{akkaSource} - %msg%n</pattern>
+
+    </encoder>
+
+  </appender>
+
+
+
+  <!--
+
+    The logger name is typically the Java/Scala package name.
+
+    This configures the log level to log at for a package and its children packages.
+
+  -->
+
+  <logger name="play" level="INFO" additivity="true"/>
+
+  <logger name="actor" level="DEBUG" additivity="true"/>
+
+  <logger name="application" level="DEBUG" additivity="true"/>
+
+  <logger name="controllers" level="DEBUG" additivity="true"/>
+
+  <logger name="common" level="DEBUG" additivity="true"/>
+
+  <logger name="util" level="DEBUG" additivity="true"/>
+
+
+  <logger name="controllers.package$LoggingAction" level="INFO" additivity="true">
+
+    <appender-ref ref="ACCESS"/>
+
+  </logger>
+
+
+  <root level="INFO">
+
+    <appender-ref ref="CONSOLE"/>
+
+    <appender-ref ref="FILE"/>
+
+  </root>
+
+
+
+</configuration>
+

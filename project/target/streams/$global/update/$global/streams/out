@@ -1,0 +1,116 @@
+[info] Updating {file:/Users/liboren/Desktop/Ideaproject/WeixinBot/project/}weixinbot-build...
+[debug] :: resolving dependencies :: default#weixinbot-build;0.1-SNAPSHOT
+[debug] 	confs: [compile, runtime, test, provided, optional, compile-internal, runtime-internal, test-internal, plugin, sources, docs, pom, scala-tool]
+[debug] 	validate = true
+[debug] 	refresh = false
+[debug] resolving dependencies for configuration 'compile'
+[debug] == resolving dependencies for default#weixinbot-build;0.1-SNAPSHOT [compile]
+[debug] == resolving dependencies default#weixinbot-build;0.1-SNAPSHOT->com.typesafe.play#sbt-plugin;2.5.9 [compile->default(compile)]
+[info] Resolving com.typesafe.play#sbt-plugin;2.5.9 ...
+[debug] sbt-chain: Checking cache for: dependency: com.typesafe.play#sbt-plugin;2.5.9 {compile=[default(compile)]}
+[debug] sbt-chain: module revision found in cache: com.typesafe.play#sbt-plugin;2.5.9
+[debug] 	found com.typesafe.play#sbt-plugin;2.5.9 in sbt-chain
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-library;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-library;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-reflect;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-reflect;2.10.4 {provided=[default(compile)]}
+[debug] == resolving dependencies com.typesafe.play#sbt-plugin;2.5.9->com.typesafe.play#sbt-routes-compiler_2.10;2.5.9 [compile->default(compile)]
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-library;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-library;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-reflect;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-reflect;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-library;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-library;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-reflect;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-reflect;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-compiler;2.10.4 {scala-tool=[default, optional(default)]} => dependency: org.scala-lang#scala-compiler;2.10.4 {scala-tool=[default, optional(default)]}
+[debug] dependency descriptor has been mediated: sbt.ivyint.MergedDescriptors@4591288c => sbt.ivyint.MergedDescriptors@79986d3b
+[info] Resolving com.typesafe.play#sbt-routes-compiler_2.10;2.5.9 ...
+[debug] sbt-chain: Checking cache for: dependency: com.typesafe.play#sbt-routes-compiler_2.10;2.5.9 {compile=[default(compile)]}
+[info] Resolving com.typesafe.play#sbt-routes-compiler_2.10;2.5.9 ...
+[debug] sbt-chain-delegate: Checking cache for: dependency: com.typesafe.play#sbt-routes-compiler_2.10;2.5.9 {compile=[default(compile)]}
+[debug] 		tried https://repo.typesafe.com/typesafe/ivy-releases/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[debug] CLIENT ERROR: Not Found url=https://repo.typesafe.com/typesafe/ivy-releases/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[debug] 	typesafe-ivy-releases: no ivy file found for com.typesafe.play#sbt-routes-compiler_2.10;2.5.9
+[debug] 		tried https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[debug] CLIENT ERROR: Not Found url=https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[debug] 	sbt-plugin-releases: no ivy file found for com.typesafe.play#sbt-routes-compiler_2.10;2.5.9
+[debug] 		tried /Users/liboren/.ivy2/local/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[debug] 	local: no ivy file found for com.typesafe.play#sbt-routes-compiler_2.10;2.5.9
+[debug] 		tried http://angel0:8078/com/typesafe/play/sbt-routes-compiler_2.10/2.5.9/sbt-routes-compiler_2.10-2.5.9.pom
+[error] Server access Error: Operation timed out url=http://angel0:8078/com/typesafe/play/sbt-routes-compiler_2.10/2.5.9/sbt-routes-compiler_2.10-2.5.9.pom
+[debug] 	repox-maven: no ivy file found for com.typesafe.play#sbt-routes-compiler_2.10;2.5.9
+[debug] 		tried http://angel0:8078/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[error] Server access Error: Operation timed out url=http://angel0:8078/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[debug] 	repox-ivy: no ivy file found for com.typesafe.play#sbt-routes-compiler_2.10;2.5.9
+[debug] 		tried http://repo.typesafe.com/typesafe/releases/com/typesafe/play/sbt-routes-compiler_2.10/2.5.9/sbt-routes-compiler_2.10-2.5.9.pom
+[debug] CLIENT ERROR: Not Found url=http://repo.typesafe.com/typesafe/releases/com/typesafe/play/sbt-routes-compiler_2.10/2.5.9/sbt-routes-compiler_2.10-2.5.9.pom
+[debug] 	Typesafe repository: no ivy file found for com.typesafe.play#sbt-routes-compiler_2.10;2.5.9
+[warn] 	module not found: com.typesafe.play#sbt-routes-compiler_2.10;2.5.9
+[warn] ==== typesafe-ivy-releases: tried
+[warn]   https://repo.typesafe.com/typesafe/ivy-releases/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[warn] ==== sbt-plugin-releases: tried
+[warn]   https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[warn] ==== local: tried
+[warn]   /Users/liboren/.ivy2/local/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[warn] ==== repox-maven: tried
+[warn]   http://angel0:8078/com/typesafe/play/sbt-routes-compiler_2.10/2.5.9/sbt-routes-compiler_2.10-2.5.9.pom
+[warn] ==== repox-ivy: tried
+[warn]   http://angel0:8078/com.typesafe.play/sbt-routes-compiler_2.10/2.5.9/ivys/ivy.xml
+[warn] ==== Typesafe repository: tried
+[warn]   http://repo.typesafe.com/typesafe/releases/com/typesafe/play/sbt-routes-compiler_2.10/2.5.9/sbt-routes-compiler_2.10-2.5.9.pom
+[debug] == resolving dependencies com.typesafe.play#sbt-plugin;2.5.9->com.typesafe.play#sbt-run-support_2.10;2.5.9 [compile->default(compile)]
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-library;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-library;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-reflect;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-reflect;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-library;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-library;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-reflect;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-reflect;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-compiler;2.10.4 {scala-tool=[default, optional(default)]} => dependency: org.scala-lang#scala-compiler;2.10.4 {scala-tool=[default, optional(default)]}
+[debug] dependency descriptor has been mediated: sbt.ivyint.MergedDescriptors@4591288c => sbt.ivyint.MergedDescriptors@738ff3dc
+[info] Resolving com.typesafe.play#sbt-run-support_2.10;2.5.9 ...
+[debug] sbt-chain: Checking cache for: dependency: com.typesafe.play#sbt-run-support_2.10;2.5.9 {compile=[default(compile)]}
+[info] Resolving com.typesafe.play#sbt-run-support_2.10;2.5.9 ...
+[debug] sbt-chain-delegate: Checking cache for: dependency: com.typesafe.play#sbt-run-support_2.10;2.5.9 {compile=[default(compile)]}
+[debug] 		tried https://repo.typesafe.com/typesafe/ivy-releases/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[debug] CLIENT ERROR: Not Found url=https://repo.typesafe.com/typesafe/ivy-releases/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[debug] 	typesafe-ivy-releases: no ivy file found for com.typesafe.play#sbt-run-support_2.10;2.5.9
+[debug] 		tried https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[debug] CLIENT ERROR: Not Found url=https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[debug] 	sbt-plugin-releases: no ivy file found for com.typesafe.play#sbt-run-support_2.10;2.5.9
+[debug] 		tried /Users/liboren/.ivy2/local/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[debug] 	local: no ivy file found for com.typesafe.play#sbt-run-support_2.10;2.5.9
+[debug] 		tried http://angel0:8078/com/typesafe/play/sbt-run-support_2.10/2.5.9/sbt-run-support_2.10-2.5.9.pom
+[error] Server access Error: Operation timed out url=http://angel0:8078/com/typesafe/play/sbt-run-support_2.10/2.5.9/sbt-run-support_2.10-2.5.9.pom
+[debug] 	repox-maven: no ivy file found for com.typesafe.play#sbt-run-support_2.10;2.5.9
+[debug] 		tried http://angel0:8078/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[error] Server access Error: Operation timed out url=http://angel0:8078/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[debug] 	repox-ivy: no ivy file found for com.typesafe.play#sbt-run-support_2.10;2.5.9
+[debug] 		tried http://repo.typesafe.com/typesafe/releases/com/typesafe/play/sbt-run-support_2.10/2.5.9/sbt-run-support_2.10-2.5.9.pom
+[debug] CLIENT ERROR: Not Found url=http://repo.typesafe.com/typesafe/releases/com/typesafe/play/sbt-run-support_2.10/2.5.9/sbt-run-support_2.10-2.5.9.pom
+[debug] 	Typesafe repository: no ivy file found for com.typesafe.play#sbt-run-support_2.10;2.5.9
+[warn] 	module not found: com.typesafe.play#sbt-run-support_2.10;2.5.9
+[warn] ==== typesafe-ivy-releases: tried
+[warn]   https://repo.typesafe.com/typesafe/ivy-releases/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[warn] ==== sbt-plugin-releases: tried
+[warn]   https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[warn] ==== local: tried
+[warn]   /Users/liboren/.ivy2/local/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[warn] ==== repox-maven: tried
+[warn]   http://angel0:8078/com/typesafe/play/sbt-run-support_2.10/2.5.9/sbt-run-support_2.10-2.5.9.pom
+[warn] ==== repox-ivy: tried
+[warn]   http://angel0:8078/com.typesafe.play/sbt-run-support_2.10/2.5.9/ivys/ivy.xml
+[warn] ==== Typesafe repository: tried
+[warn]   http://repo.typesafe.com/typesafe/releases/com/typesafe/play/sbt-run-support_2.10/2.5.9/sbt-run-support_2.10-2.5.9.pom
+[debug] == resolving dependencies com.typesafe.play#sbt-plugin;2.5.9->com.typesafe#config;1.3.0 [compile->default(compile)]
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-library;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-library;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-reflect;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-reflect;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-library;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-library;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-reflect;2.10.6 {provided=[default(compile)]} => dependency: org.scala-lang#scala-reflect;2.10.4 {provided=[default(compile)]}
+[debug] dependency descriptor has been mediated: dependency: org.scala-lang#scala-compiler;2.10.4 {scala-tool=[default, optional(default)]} => dependency: org.scala-lang#scala-compiler;2.10.4 {scala-tool=[default, optional(default)]}
+[debug] dependency descriptor has been mediated: sbt.ivyint.MergedDescriptors@4591288c => sbt.ivyint.MergedDescriptors@282030e0
+[info] Resolving com.typesafe#config;1.3.0 ...
+[debug] sbt-chain: Checking cache for: dependency: com.typesafe#config;1.3.0 {compile=[default(compile)]}
+[info] Resolving com.typesafe#config;1.3.0 ...
+[debug] sbt-chain-delegate: Checking cache for: dependency: com.typesafe#config;1.3.0 {compile=[default(compile)]}
+[debug] 		tried https://repo.typesafe.com/typesafe/ivy-releases/com.typesafe/config/1.3.0/ivys/ivy.xml
+[debug] CLIENT ERROR: Not Found url=https://repo.typesafe.com/typesafe/ivy-releases/com.typesafe/config/1.3.0/ivys/ivy.xml
+[debug] 	typesafe-ivy-releases: no ivy file found for com.typesafe#config;1.3.0
+[debug] 		tried https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/com.typesafe/config/1.3.0/ivys/ivy.xml
+[debug] CLIENT ERROR: Not Found url=https://repo.scala-sbt.org/scalasbt/sbt-plugin-releases/com.typesafe/config/1.3.0/ivys/ivy.xml
+[debug] 	sbt-plugin-releases: no ivy file found for com.typesafe#config;1.3.0
+[debug] 		tried /Users/liboren/.ivy2/local/com.typesafe/config/1.3.0/ivys/ivy.xml
+[debug] 	local: no ivy file found for com.typesafe#config;1.3.0
+[debug] 		tried http://angel0:8078/com/typesafe/config/1.3.0/config-1.3.0.pom
