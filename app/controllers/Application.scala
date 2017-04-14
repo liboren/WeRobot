@@ -2,6 +2,9 @@ package controllers
 
 import java.net.{URLDecoder, URLEncoder}
 
+import actor.{CheckUserLogin, GetUuid}
+import akka.actor.ActorRef
+import com.google.inject.name.Named
 import com.google.inject.{Inject, Singleton}
 import common.AppSettings
 import models.JsonProtocols
@@ -12,32 +15,39 @@ import play.api.libs.ws.WSCookie
 import play.api.mvc._
 import util.{HttpUtil, SecureUtil}
 import util._
+import akka.pattern.ask
 
 import scala.collection.immutable.HashMap
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
 import scala.util.control.Breaks
+import common.Constants
+import common.Constants.WeixinAPI
+import akka.util.Timeout
 
 @Singleton
 class Application @Inject()(
                                 httpUtil: HttpUtil,
                                 chatApi:chatApi,
-                                val actionUtils: ActionUtils,
-                                appSettings: AppSettings
-                              ) extends Controller with JsonProtocols{
+                                actionUtils: ActionUtils,
+                                appSettings: AppSettings,
+                                @Named("configured-master") master: ActorRef
+                           ) extends Controller with JsonProtocols{
   import actionUtils._
 
   import concurrent.duration._
 
   private val log = Logger(this.getClass)
+  implicit val timeout = Timeout(30.seconds)
+
   System.setProperty("jsse.enableSNIExtension", "false")
 
 
-  def index = LoggingAction.async { implicit request =>
+  def index = LoggingAction.async { implicit request => //默认页面，跳转到登录页
     Future.successful(Ok(views.html.login("WeixinBot",None)))
 
   }
-  def homepage = LoggingAction.async { implicit request =>
+  def homepage = LoggingAction.async { implicit request => //扫码登录页面
     Future.successful(Ok(views.html.homepage("WeixinBot",None)))
 
   }
@@ -155,11 +165,26 @@ class Application @Inject()(
 
   }
 
+  def getUuidTest = LoggingAction.async{ implicit request =>
+    (master ? GetUuid()).map {
+      case Some(uuid:String) => Ok(successResponse(Json.obj("uuid" -> Json.toJson(uuid))))
+      case None => Ok(jsonResponse(201,"error"))
+      case _ => Ok(jsonResponse(201,"error"))
+    }
+  }
+  def checkUserLoginTest(uuid:String) = LoggingAction.async { implicit request =>
+    log.info("check if user login")
+    (master ? CheckUserLogin(uuid)).map {
+      case code:String => Ok(successResponse(Json.obj("result" -> Json.toJson(code))))
+      case _ => Ok(jsonResponse(201,"error"))
+    }
+  }
+
   //获取二维码uuid
   def getUuid = LoggingAction.async { implicit request =>
     log.info("Strat get 2d code uuid!")
-    val baseUrl = "http://login.weixin.qq.com/jslogin"
-    val appid = "wx782c26e4c19acffb"
+    val baseUrl = WeixinAPI.getUuid.baseUrl
+    val appid = WeixinAPI.getUuid.appid
     val curTime = System.currentTimeMillis().toString
 
     val postData = Map(
@@ -226,15 +251,12 @@ class Application @Inject()(
       "r" -> (~curTime.toInt).toString,
       "_" -> curTime.toString
     )
-
-
     httpUtil.getBodyRequestSend("check if user login", baseUrl,params,null).map { js =>
       try {
         val res = js.toString
         val code = res.split(";")(0).split("=")(1)
         //登录成功
         if(code == "200"){
-
           val param = res.split(";")(1)
           val list = param.split("&")
           val ticket = list(0).split("\\?")(1).split("=")(1)
@@ -258,7 +280,7 @@ class Application @Inject()(
 
               webwxstatusnotify(passTicket,skey,uin,sid,username,deviceId,cookies).map { res =>
 
-                getContect(passTicket, skey).map(result =>
+                getContect(passTicket, skey).map(result => //Todo 这里获取不到信息
                   log.info(result.toString())
                 )
                 getGroupContect(passTicket, uin, sid, skey, deviceId, createData(result._2), result._2.length, cookies).map { groupMap =>
@@ -347,7 +369,7 @@ class Application @Inject()(
 
                                       //@<span class=\"emoji emoji1f433\"></span> 樂瑥（海豚emoji表情）
                                       val str = s"@${sendDisplayName} 收到活动链接，一番努力后总共已经点亮了${total - expire}个爱心(新增${win}个)(上限10个)，快上游戏看积分有没增加吧~(账号总数:${total} 失效:${expire} 在线:${total - expire} 新增点亮:${win} 重复点亮:${total - expire - win})"
-                                      Await.result(sendMessage(passTicket, uin, sid, skey, deviceId, username, formUserName, str, cookies), 27.seconds)
+                                      Await.result(sendMessage(passTicket, uin, sid, skey, deviceId, username, formUserName, str, cookies), 27.second)
                                     }
                                   case 62 => // 小视频
                                   case 10000 => // 系统消息

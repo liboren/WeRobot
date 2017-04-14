@@ -50,18 +50,18 @@ class HttpUtil @Inject()(
                           methodName: String,
                           url: String,
                           parameters: List[(String, String)]) = {
-    log.info("Get Request [" + methodName + "] Processing...")
-    log.debug(methodName + " url=" + url)
-    log.debug(methodName + " parameters=" + parameters)
+//    log.info("Get Request [" + methodName + "] Processing...")
+//    log.debug(methodName + " url=" + url)
+//    log.debug(methodName + " parameters=" + parameters)
     val futureResult = ws.
       url(url).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(10, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
       get().map { response =>
-      log.debug("getRequestSend response headers:" + response.allHeaders)
-      log.debug("getRequestSend response body:" + response.body)
-      log.debug("getRequestSend response cookies:" + response.cookies)
+//      log.debug("getRequestSend response headers:" + response.allHeaders)
+//      log.debug("getRequestSend response body:" + response.body)
+//      log.debug("getRequestSend response cookies:" + response.cookies)
       if (response.status != 200) {
         val body = if (response.body.length > 1024) response.body.substring(0, 1024) else response.body
         val msg = s"getRequestSend http failed url = $url, status = ${response.status}, text = ${response.statusText}, body = ${body}"
@@ -86,20 +86,20 @@ class HttpUtil @Inject()(
                           parameters: List[(String, String)],
                           cookies:String
                         ) = {
-    log.info("Get Request [" + methodName + "] Processing...")
-    log.debug(methodName + " url=" + url)
-    log.debug(methodName + " parameters=" + parameters)
+//    log.info("Get Request [" + methodName + "] Processing...")
+//    log.debug(methodName + " url=" + url)
+//    log.debug(methodName + " parameters=" + parameters)
     val cookie = if(cookies == null) "" else cookies.toString
     val futureResult = ws.
       url(url).
       withHeaders(("Cookie",cookie)).
       withFollowRedirects(follow = true).
-      withRequestTimeout(Duration(30, scala.concurrent.duration.SECONDS)).
+      withRequestTimeout(Duration(120, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
       get().map { response =>
-      log.debug("getRequestSend response headers:" + response.allHeaders)
-      log.debug("getRequestSend response body:" + response.body)
-      log.debug("getRequestSend response cookies:" + response.cookies)
+//      log.debug("getRequestSend response headers:" + response.allHeaders)
+//      log.debug("getRequestSend response body:" + response.body)
+//      log.debug("getRequestSend response cookies:" + response.cookies)
       if (response.status != 200) {
         val body = if (response.body.length > 1024) response.body.substring(0, 1024) else response.body
         val msg = s"getRequestSend http failed url = $url, status = ${response.status}, text = ${response.statusText}, body = $body"
@@ -121,18 +121,18 @@ class HttpUtil @Inject()(
                           methodName: String,
                           url: String,
                           parameters: List[(String, String)]) = {
-    log.info("Get Request [" + methodName + "] Processing...")
-    log.debug(methodName + " url=" + url)
-    log.debug(methodName + " parameters=" + parameters)
+//    log.info("Get Request [" + methodName + "] Processing...")
+//    log.debug(methodName + " url=" + url)
+//    log.debug(methodName + " parameters=" + parameters)
     val futureResult = ws.
       url(url).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(30, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
       get().map { response =>
-      log.debug("getRequestSend response headers:" + response.allHeaders)
-      log.debug("getRequestSend response body:" + response.body)
-      log.debug("getRequestSend response cookies:" + response.cookies)
+//      log.debug("getRequestSend response headers:" + response.allHeaders)
+//      log.debug("getRequestSend response body:" + response.body)
+//      log.debug("getRequestSend response cookies:" + response.cookies)
       if (response.status != 200) {
         val body = if (response.body.length > 1024) response.body.substring(0, 1024) else response.body
         val msg = s"getRequestSend http failed url = $url, status = ${response.status}, text = ${response.statusText}, body = $body"
@@ -158,10 +158,10 @@ class HttpUtil @Inject()(
                            postData: JsObject,
                            cookies:String
   ) = {
-    log.info("Post Request [" + methodName + "] Processing...")
-    log.debug(methodName + " url=" + url)
-    log.debug(methodName + " parameters=" + parameters)
-    log.debug(methodName + " postData=" + postData.toString)
+//    log.info("Post Request [" + methodName + "] Processing...")
+//    log.debug(methodName + " url=" + url)
+//    log.debug(methodName + " parameters=" + parameters)
+//    log.debug(methodName + " postData=" + postData.toString)
     val futureResult = ws.
       url(url).
       withHeaders(("Cookie",cookies.toString)).
@@ -171,7 +171,7 @@ class HttpUtil @Inject()(
       post(postData).map { response =>
 //      log.debug("postJsonRequestSend response headers:" + response.allHeaders)
 //      log.debug("postJsonRequestSend response body:" + response.body)
-      log.debug("postJsonRequestSend response cookies:" + response.cookies)
+//      log.debug("postJsonRequestSend response cookies:" + response.cookies)
       if (response.status != 200) {
         val body = response.body.slice(0, 1024)
         val msg = s"postJsonRequestSend http failed url = $url, status = ${response.status}, text = ${response.statusText}, body = $body"
@@ -193,10 +193,10 @@ class HttpUtil @Inject()(
                                url: String,
                                parameters: List[(String, String)],
                                mimeFile: FilePart): Future[JsValue] = {
-    log.info("Post File Request [" + methodName + "] Processing...")
-    log.debug(methodName + " url=" + url)
-    log.debug(methodName + " parameters=" + parameters)
-    log.debug(methodName + " file=" + mimeFile.getName)
+//    log.info("Post File Request [" + methodName + "] Processing...")
+//    log.debug(methodName + " url=" + url)
+//    log.debug(methodName + " parameters=" + parameters)
+//    log.debug(methodName + " file=" + mimeFile.getName)
 
     //val client = ws.underlying[AsyncHttpClient]
     val client: AsyncHttpClient = ws.underlying
@@ -319,19 +319,19 @@ class HttpUtil @Inject()(
                            url: String,
                            parameters: List[(String, String)],
                            postData:Map[String,String]) = {
-    log.info("Get Request [" + methodName + "] Processing...")
-    log.debug(methodName + " url=" + url)
+//    log.info("Get Request [" + methodName + "] Processing...")
+//    log.debug(methodName + " url=" + url)
     val postStr = postData.map(i => i._1 + "=" + i._2).mkString("&")
-    log.info(methodName + " postData=" + postStr)
+//    log.info(methodName + " postData=" + postStr)
     val futureResult = ws.
       url(url).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(10, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
       post(postStr).map { response =>
-      log.debug("getRequestSend response headers:" + response.allHeaders)
-      log.debug("getRequestSend response body:" + response.body)
-      log.debug("postFormRequestSend response cookies:" + response.cookies)
+//      log.debug("getRequestSend response headers:" + response.allHeaders)
+//      log.debug("getRequestSend response body:" + response.body)
+//      log.debug("postFormRequestSend response cookies:" + response.cookies)
       if (response.status != 200) {
         val body = if (response.body.length > 1024) response.body.substring(0, 1024) else response.body
         val msg = s"getRequestSend http failed url = $url, status = ${response.status}, text = ${response.statusText}, body = $body"

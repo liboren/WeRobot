@@ -2,7 +2,7 @@ package models
 
 import play.api.libs.json._
 import play.api.mvc.Results
-
+import models.tables.SlickTables._
 
 
 
@@ -24,4 +24,16 @@ trait JsonProtocols {
   val success = jsonResponse(0, "OK")
 
 
+  implicit val rKeywordresponseRow: Writes[rKeywordresponse] = new Writes[rKeywordresponse] {
+    override def writes(o: rKeywordresponse): JsValue = {
+      Json.obj(
+        "id" -> o.id,
+        "keyword" -> o.keyword,
+        "restype" -> o.restype,
+        "response" -> o.response,
+        "triggertype" -> o.triggertype,
+        "userid" -> o.userid
+      )
+    }
+  }
 }

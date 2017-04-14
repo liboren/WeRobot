@@ -4,11 +4,25 @@
 
 # Home page
 GET     /                           controllers.Application.index
-GET     /homepage                           controllers.Application.homepage
-GET     /getuuid                    controllers.Application.getUuid
+GET     /homepage                   controllers.Application.homepage
+GET     /getuuid                    controllers.Application.getUuidTest
 #GET     /get2dcode                  controllers.Application.get2Dcode
-GET     /checkuserlogin             controllers.Application.checkUserLogin(uuid:String)
+GET     /checkuserlogin             controllers.Application.checkUserLoginTest(uuid:String)
 GET     /test                       controllers.Application.test
+
+# keywordResponse
+GET     /keyword/create             controllers.KeywordResponse.createrKeywordResponse(keyword:String,restype:Int,response:String,triggertype:Int,userid:Long)
+GET     /keyword/change             controllers.KeywordResponse.changeKeywordResponseList(id:Long,userid:Long,keyword:String,restype:Int,response:String,triggertype:Int)
+GET     /keyword/list               controllers.KeywordResponse.getKeywordResponseList(userid:Long)
+GET     /keyword/delete             controllers.KeywordResponse.deleteKeywordResponse(id:Long,userid:Long)
+
+
+
+
+
+
+
+
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/lib/*file                      controllers.WebJarAssets.at(file)
 GET         /assets/*file                          controllers.Assets.at(path="/public", file)
