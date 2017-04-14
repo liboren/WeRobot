@@ -11,10 +11,10 @@ GET     /checkuserlogin             controllers.Application.checkUserLoginTest(u
 GET     /test                       controllers.Application.test
 
 # keywordResponse
-GET     /keyword/create             controllers.KeywordResponse.createrKeywordResponse(keyword:String,restype:Int,response:String,triggertype:Int,userid:Long)
-GET     /keyword/change             controllers.KeywordResponse.changeKeywordResponseList(id:Long,userid:Long,keyword:String,restype:Int,response:String,triggertype:Int)
+POST     /keyword/create             controllers.KeywordResponse.createrKeywordResponse
+POST     /keyword/change             controllers.KeywordResponse.changeKeywordResponseList
 GET     /keyword/list               controllers.KeywordResponse.getKeywordResponseList(userid:Long)
-GET     /keyword/delete             controllers.KeywordResponse.deleteKeywordResponse(id:Long,userid:Long)
+POST     /keyword/delete             controllers.KeywordResponse.deleteKeywordResponse
 
 
 

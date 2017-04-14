@@ -27,7 +27,13 @@ class KeywordResponse @Inject()(
     }
   }
 
-  def createrKeywordResponse(keyword:String,restype:Int,response:String,triggertype:Int,userid:Long) = LoggingAction.async{ request =>
+  def createrKeywordResponse = LoggingAction.async{ request =>
+    val jsonData = request.body.asJson.get
+    val keyword = (jsonData \ "keyword").as[String]
+    val restype = (jsonData \ "restype").as[Int]
+    val response = (jsonData \ "response").as[String]
+    val triggertype = (jsonData \ "triggertype").as[Int]
+    val userid = (jsonData \ "userid").as[Long]
     keywordResponseDao.createrKeywordResponse(keyword,restype,response,triggertype,userid).map{ res =>
       if(res > 0){
         Ok(success)
@@ -38,7 +44,14 @@ class KeywordResponse @Inject()(
     }
   }
 
-  def changeKeywordResponseList(id:Long,userid:Long,keyword:String,restype:Int,response:String,triggertype:Int) = LoggingAction.async{ request =>
+  def changeKeywordResponseList = LoggingAction.async{ request =>
+    val jsonData = request.body.asJson.get
+    val id = (jsonData \ "id").as[Long]
+    val keyword = (jsonData \ "keyword").as[String]
+    val restype = (jsonData \ "restype").as[Int]
+    val response = (jsonData \ "response").as[String]
+    val triggertype = (jsonData \ "triggertype").as[Int]
+    val userid = (jsonData \ "userid").as[Long]
     keywordResponseDao.changeKeywordResponseList(id,userid,keyword,restype,response,triggertype).map{ res =>
       if(res > 0){
         Ok(success)
@@ -49,7 +62,10 @@ class KeywordResponse @Inject()(
     }
   }
 
-  def deleteKeywordResponse(id:Long,userid:Long) = LoggingAction.async{ request =>
+  def deleteKeywordResponse = LoggingAction.async{ request =>
+    val jsonData = request.body.asJson.get
+    val id = (jsonData \ "id").as[Long]
+    val userid = (jsonData \ "userid").as[Long]
     keywordResponseDao.deleteKeywordResponse(id,userid).map{ res =>
       if(res > 0){
         Ok(success)

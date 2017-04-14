@@ -1,17 +1,15 @@
 package actor
 
-import javax.inject.{Inject, Singleton}
 
-import akka.actor.{Actor, PoisonPill, Props}
-import akka.util.Timeout
+import javax.inject.Inject
+
+import akka.actor.{Actor, Props}
 import models.dao.KeywordResponseDao
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.libs.ws.WSClient
 import util.{HttpUtil, ReplyUtil, SecureUtil}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.collection.immutable.HashMap
 import scala.concurrent.Await
 import concurrent.duration._
 /**
@@ -23,7 +21,7 @@ object Slave{
   def props(userInfo: UserInfo,httpUtil: HttpUtil,keywordResponseDao:KeywordResponseDao) = Props(new Slave(userInfo,httpUtil,keywordResponseDao))
 }
 
-class Slave(userInfo: UserInfo,httpUtil: HttpUtil,keywordResponseDao:KeywordResponseDao)  extends Actor with ActorProtocol {
+class Slave @Inject() (userInfo: UserInfo,httpUtil: HttpUtil,keywordResponseDao:KeywordResponseDao)  extends Actor with ActorProtocol {
 
   private final val log = Logger(this.getClass)
   log.debug("------------------  Slave created")
@@ -43,7 +41,7 @@ class Slave(userInfo: UserInfo,httpUtil: HttpUtil,keywordResponseDao:KeywordResp
     log.info(s"${self.path.name} stopping...")
   }
 
-  def createUserNameData(seq: Array[String]) = {
+  def createUserNameData(seq: Array[String]): Array[JsObject] = {
     seq.map { m =>
       Json.obj(
         "UserName" -> m,
@@ -52,7 +50,7 @@ class Slave(userInfo: UserInfo,httpUtil: HttpUtil,keywordResponseDao:KeywordResp
     }
   }
 
-  def createSyncKey(Synckey: JsObject) = {
+  def createSyncKey(Synckey: JsObject): String = {
     (Synckey \ "List").as[Seq[JsValue]].map { m =>
       val key = (m \ "Key").as[Int]
       val value = (m \ "Val").as[Long]

@@ -9,7 +9,7 @@ var HomePage=React.createClass({
     render:function(){
         return (
             <div id="login-app">
-                登录成功!
+                登录成功!!!
             </div>
         )}
 });
