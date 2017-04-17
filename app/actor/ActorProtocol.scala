@@ -1,17 +1,21 @@
 package actor
 
 import play.api.libs.json.{JsObject, JsValue, Json}
+
+import scala.collection.mutable
 /**
   * Created by Macbook on 2017/4/13.
   */
  trait ActorProtocol
 
+case class BaseInfo(nickName:String,displayName:String,headImgUrl:String,province:String,city:String,sex:Int)
+import java.util.concurrent.ConcurrentHashMap
 class UserInfo{
   var userid = 10000L
   var scan = ""
   var ticket = ""
   var uuid = ""
-  var base_uri = ""
+  var base_uri = "wx.qq.com/"
   var redirect_uri = ""
   var wxuin = ""
   var wxsid = ""
@@ -23,14 +27,14 @@ class UserInfo{
   var SyncKey:JsObject = null
   var username = ""
   var chatset:Array[String] = null
-  var MemberList = ""
-  var ContactList = ""  // 好友
-  var GroupList = ""  // 群
-  var GroupMemeberList = ""  // 群友
-  var PublicUsersList = ""  // 公众号／服务号
-  var SpecialUsersList = ""  // 特殊账号
+  var selfInfo:BaseInfo = null
+  var ContactList = new ConcurrentHashMap[String,BaseInfo]() // 好友
+  var GroupList= new ConcurrentHashMap[String,BaseInfo]() // 群
+  var GroupMemeberList = new ConcurrentHashMap[String,ConcurrentHashMap[String,BaseInfo]]()  // 群友
+  var PublicUsersList= new ConcurrentHashMap[String,BaseInfo]()  // 公众号／服务号
+  var SpecialUsersList= new ConcurrentHashMap[String,BaseInfo]() // 特殊账号
   var autoReplyMode = false
-  var syncHost = ""
+  var syncHost = "webpush."
   var user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36"
   var interactive = false
   var autoOpen = false
@@ -58,9 +62,12 @@ case class SendMessage(msg:String,from:String,to:String)
 case class ProcessNewMessage(msgList:Seq[JsValue])
 case class ReceivedNewMessage()
 case class SyncCheck()
-case class GetGroupContect()
-case class GetContect()
+case class GetGroupContect(chatset:Array[String])
+case class GetContect(seq:String)
 case class StatusNotify()
 case class WXInit()
 case class GetTicketAndKey()
 case class SyncCheckKey()
+case class HandleMsg(fromUserName:String,toUserName:String,msgType:Int,msg:JsValue
+
+                    )

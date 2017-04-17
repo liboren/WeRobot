@@ -4,7 +4,7 @@ import javax.inject.{Inject, Singleton}
 
 import akka.actor.Actor
 import common.Constants.WeixinAPI
-import models.dao.KeywordResponseDao
+import models.dao.{GroupDao, KeywordResponseDao, MemberDao}
 import play.api.Logger
 import play.api.libs.json.Json
 import util.HttpUtil
@@ -20,7 +20,8 @@ object Master{
 }
 
 @Singleton
-class Master @Inject()(httpUtil: HttpUtil,keywordResponseDao: KeywordResponseDao) extends Actor with ActorProtocol{
+class Master @Inject()(httpUtil: HttpUtil,keywordResponseDao: KeywordResponseDao,memberDao: MemberDao,
+                       groupDao: GroupDao) extends Actor with ActorProtocol{
   private final val log = Logger(this.getClass)
   log.debug("------------------  Master created")
 
@@ -36,7 +37,7 @@ class Master @Inject()(httpUtil: HttpUtil,keywordResponseDao: KeywordResponseDao
 
   override def receive:Receive = {
     case NewUserLogin(userInfo:UserInfo) => // 有新的用户扫码登录
-      val slave = context.actorOf(Slave.props(userInfo,httpUtil,keywordResponseDao))
+      val slave = context.actorOf(Slave.props(userInfo,httpUtil,keywordResponseDao,memberDao,groupDao))
       context.watch(slave)
       slave ! BeginInit() // Todo
 
@@ -86,6 +87,7 @@ class Master @Inject()(httpUtil: HttpUtil,keywordResponseDao: KeywordResponseDao
       )
       httpUtil.getBodyRequestSend("check if user login", baseUrl,params,null).map { js =>
           val res = js.toString
+        log.debug("登入返回"+res)
           val code = res.split(";")(0).split("=")(1)
           //登录成功
           if (code == "200") {
@@ -94,6 +96,8 @@ class Master @Inject()(httpUtil: HttpUtil,keywordResponseDao: KeywordResponseDao
             val ticket = list(0).split("\\?")(1).split("=")(1)
             val scan = list(3).split("=")(1)
             val userInfo = new UserInfo()
+            val baseUrl = param.split("https://")(1).split("cgi-bin")(0)
+            userInfo.base_uri = baseUrl
             userInfo.uuid = uuid
             userInfo.ticket = ticket
             userInfo.scan = scan

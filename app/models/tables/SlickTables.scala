@@ -61,67 +61,76 @@ trait SlickTables {
 
   /** Entity class storing rows of table tGroup
     *  @param groupid Database column groupid SqlType(BIGINT), AutoInc, PrimaryKey
-    *  @param groupname Database column groupname SqlType(VARCHAR), Length(255,true), Default(None)
-    *  @param ownerid Database column ownerid SqlType(BIGINT), Default(None)
-    *  @param state Database column state SqlType(INT), Default(None) */
-  case class rGroup(groupid: Long, groupname: Option[String] = None, ownerid: Option[Long] = None, state: Option[Int] = None)
+    *  @param groupnickname Database column groupnickname SqlType(VARCHAR), Length(255,true)
+    *  @param ownerid Database column ownerid SqlType(BIGINT)
+    *  @param state Database column state SqlType(INT)
+    *  @param headimgurl Database column headimgurl SqlType(VARCHAR), Length(255,true)
+    *  @param groupunionid Database column groupunionid SqlType(VARCHAR), Length(255,true)
+    *  @param membercount Database column membercount SqlType(INT) */
+  case class rGroup(groupid: Long, groupnickname: String, ownerid: Long, state: Int, headimgurl: String, groupunionid: String, membercount: Int)
   /** GetResult implicit for fetching rGroup objects using plain SQL queries */
-  implicit def GetResultrGroup(implicit e0: GR[Long], e1: GR[Option[String]], e2: GR[Option[Long]], e3: GR[Option[Int]]): GR[rGroup] = GR{
+  implicit def GetResultrGroup(implicit e0: GR[Long], e1: GR[String], e2: GR[Int]): GR[rGroup] = GR{
     prs => import prs._
-      rGroup.tupled((<<[Long], <<?[String], <<?[Long], <<?[Int]))
+      rGroup.tupled((<<[Long], <<[String], <<[Long], <<[Int], <<[String], <<[String], <<[Int]))
   }
   /** Table description of table group. Objects of this class serve as prototypes for rows in queries. */
   class tGroup(_tableTag: Tag) extends Table[rGroup](_tableTag, "group") {
-    def * = (groupid, groupname, ownerid, state) <> (rGroup.tupled, rGroup.unapply)
+    def * = (groupid, groupnickname, ownerid, state, headimgurl, groupunionid, membercount) <> (rGroup.tupled, rGroup.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(groupid), groupname, ownerid, state).shaped.<>({r=>import r._; _1.map(_=> rGroup.tupled((_1.get, _2, _3, _4)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(groupid), Rep.Some(groupnickname), Rep.Some(ownerid), Rep.Some(state), Rep.Some(headimgurl), Rep.Some(groupunionid), Rep.Some(membercount)).shaped.<>({r=>import r._; _1.map(_=> rGroup.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column groupid SqlType(BIGINT), AutoInc, PrimaryKey */
     val groupid: Rep[Long] = column[Long]("groupid", O.AutoInc, O.PrimaryKey)
-    /** Database column groupname SqlType(VARCHAR), Length(255,true), Default(None) */
-    val groupname: Rep[Option[String]] = column[Option[String]]("groupname", O.Length(255,varying=true), O.Default(None))
-    /** Database column ownerid SqlType(BIGINT), Default(None) */
-    val ownerid: Rep[Option[Long]] = column[Option[Long]]("ownerid", O.Default(None))
-    /** Database column state SqlType(INT), Default(None) */
-    val state: Rep[Option[Int]] = column[Option[Int]]("state", O.Default(None))
+    /** Database column groupnickname SqlType(VARCHAR), Length(255,true) */
+    val groupnickname: Rep[String] = column[String]("groupnickname", O.Length(255,varying=true))
+    /** Database column ownerid SqlType(BIGINT) */
+    val ownerid: Rep[Long] = column[Long]("ownerid")
+    /** Database column state SqlType(INT) */
+    val state: Rep[Int] = column[Int]("state")
+    /** Database column headimgurl SqlType(VARCHAR), Length(255,true) */
+    val headimgurl: Rep[String] = column[String]("headimgurl", O.Length(255,varying=true))
+    /** Database column groupunionid SqlType(VARCHAR), Length(255,true) */
+    val groupunionid: Rep[String] = column[String]("groupunionid", O.Length(255,varying=true))
+    /** Database column membercount SqlType(INT) */
+    val membercount: Rep[Int] = column[Int]("membercount")
 
     /** Foreign key referencing tSystemuser (database name fk_ownerid) */
-    lazy val tSystemuserFk = foreignKey("fk_ownerid", ownerid, tSystemuser)(r => Rep.Some(r.userid), onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+    lazy val tSystemuserFk = foreignKey("fk_ownerid", ownerid, tSystemuser)(r => r.userid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
   }
   /** Collection-like TableQuery object for table tGroup */
   lazy val tGroup = new TableQuery(tag => new tGroup(tag))
 
   /** Entity class storing rows of table tGroupuser
     *  @param id Database column id SqlType(BIGINT), AutoInc, PrimaryKey
-    *  @param userunionid Database column userunionid SqlType(BIGINT)
+    *  @param userunionid Database column userunionid SqlType(VARCHAR), Length(255,true)
     *  @param groupid Database column groupid SqlType(BIGINT)
-    *  @param userrealname Database column userrealname SqlType(VARCHAR), Length(255,true)
+    *  @param usernickname Database column usernickname SqlType(VARCHAR), Length(255,true)
     *  @param userdisplayname Database column userdisplayname SqlType(VARCHAR), Length(255,true) */
-  case class rGroupuser(id: Long, userunionid: Long, groupid: Long, userrealname: String, userdisplayname: String)
+  case class rGroupuser(id: Long, userunionid: String, groupid: Long, usernickname: String, userdisplayname: String)
   /** GetResult implicit for fetching rGroupuser objects using plain SQL queries */
   implicit def GetResultrGroupuser(implicit e0: GR[Long], e1: GR[String]): GR[rGroupuser] = GR{
     prs => import prs._
-      rGroupuser.tupled((<<[Long], <<[Long], <<[Long], <<[String], <<[String]))
+      rGroupuser.tupled((<<[Long], <<[String], <<[Long], <<[String], <<[String]))
   }
   /** Table description of table groupuser. Objects of this class serve as prototypes for rows in queries. */
   class tGroupuser(_tableTag: Tag) extends Table[rGroupuser](_tableTag, "groupuser") {
-    def * = (id, userunionid, groupid, userrealname, userdisplayname) <> (rGroupuser.tupled, rGroupuser.unapply)
+    def * = (id, userunionid, groupid, usernickname, userdisplayname) <> (rGroupuser.tupled, rGroupuser.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(userunionid), Rep.Some(groupid), Rep.Some(userrealname), Rep.Some(userdisplayname)).shaped.<>({r=>import r._; _1.map(_=> rGroupuser.tupled((_1.get, _2.get, _3.get, _4.get, _5.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(userunionid), Rep.Some(groupid), Rep.Some(usernickname), Rep.Some(userdisplayname)).shaped.<>({r=>import r._; _1.map(_=> rGroupuser.tupled((_1.get, _2.get, _3.get, _4.get, _5.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(BIGINT), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
-    /** Database column userunionid SqlType(BIGINT) */
-    val userunionid: Rep[Long] = column[Long]("userunionid")
+    /** Database column userunionid SqlType(VARCHAR), Length(255,true) */
+    val userunionid: Rep[String] = column[String]("userunionid", O.Length(255,varying=true))
     /** Database column groupid SqlType(BIGINT) */
     val groupid: Rep[Long] = column[Long]("groupid")
-    /** Database column userrealname SqlType(VARCHAR), Length(255,true) */
-    val userrealname: Rep[String] = column[String]("userrealname", O.Length(255,varying=true))
+    /** Database column usernickname SqlType(VARCHAR), Length(255,true) */
+    val usernickname: Rep[String] = column[String]("usernickname", O.Length(255,varying=true))
     /** Database column userdisplayname SqlType(VARCHAR), Length(255,true) */
     val userdisplayname: Rep[String] = column[String]("userdisplayname", O.Length(255,varying=true))
 
     /** Foreign key referencing tGroup (database name fk_groupid) */
-    lazy val tGroupFk = foreignKey("fk_groupid", groupid, tGroup)(r => r.groupid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+    lazy val tGroupFk = foreignKey("fk_groupid", groupid, tGroup)(r => r.groupid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
   }
   /** Collection-like TableQuery object for table tGroupuser */
   lazy val tGroupuser = new TableQuery(tag => new tGroupuser(tag))
