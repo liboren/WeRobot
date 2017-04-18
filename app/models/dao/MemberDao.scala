@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.driver.JdbcProfile
 
+import scala.collection.parallel.ParSeq
+
 /**
   * Created by Macbook on 2017/4/16.
   */
@@ -30,6 +32,9 @@ class MemberDao @Inject()(
     db.run(tGroupuser.map(i => (i.userunionid,i.usernickname,i.userdisplayname,i.groupid)).returning(tGroupuser.map(_.id)) +=
       (userUnionId,userNickName,userDisplayName,groupId)
     ).mapTo[Long]
+  }
+  def batchCreaterMember(infoSeq:Seq[(String,String,String,Long)]) ={
+    db.run(tGroupuser.map(i => (i.userunionid,i.usernickname,i.userdisplayname,i.groupid)).forceInsertAll(infoSeq))
   }
 
   /**

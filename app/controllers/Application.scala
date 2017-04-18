@@ -166,6 +166,7 @@ class Application @Inject()(
   }
 
   def getUuidTest = LoggingAction.async{ implicit request =>
+
     (master ? GetUuid()).map {
       case Some(uuid:String) => Ok(successResponse(Json.obj("uuid" -> Json.toJson(uuid))))
       case None => Ok(jsonResponse(201,"error"))

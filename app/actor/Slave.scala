@@ -7,11 +7,12 @@ import javax.inject.Inject
 import akka.actor.{Actor, Props}
 import models.dao.{GroupDao, KeywordResponseDao, MemberDao}
 import play.api.Logger
+import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsObject, JsValue, Json}
 import util.{HttpUtil, ReplyUtil, SecureUtil}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import concurrent.duration._
 import scala.collection.mutable
 import scala.collection.JavaConversions._
@@ -159,40 +160,45 @@ class Slave @Inject() (userInfo: UserInfo,
 
   override def receive: Receive = {
     case BeginInit() =>
+//      val schedule = context.system.scheduler.schedule(5.second ,1.day,self,BeginInit())
+//      schedule.cancel()
       log.info("开始准备与微信建立链接")
       self ! GetTicketAndKey()
-    case HandleMsg(fromUserName,toUserName,msgType,msg) =>
+    case HandleMsg(fromUserName,toUserName,msgType,msg) => // 处理消息细节
       val content = (msg \ "Content").as[String]
 
-      val parseusername = parseUserName(fromUserName)
-      val groupName = if(parseusername == null) "未知" else parseusername.nickName
-      val memberName = if(fromUserName.startsWith("@@")){
+//      val parseusername = parseUserName(fromUserName)
+//      val groupName = if(parseusername == null) "未知" else parseusername.nickName
+//      val memberName = if(fromUserName.startsWith("@@")){
         val memName = content.split(":<br/>")(0)
-        if(userInfo.GroupMemeberList.get(fromUserName) != null){
-          if(userInfo.GroupMemeberList(fromUserName).get(memName) != null){
-            if(userInfo.GroupMemeberList(fromUserName)(memName).displayName.equals("")){
-              userInfo.GroupMemeberList(fromUserName)(memName).nickName
-            }
-            else{
-              userInfo.GroupMemeberList(fromUserName)(memName).displayName
-            }
-          }
-          else{
-            groupName
-          }
-        }
-        else{
-          groupName
-        }
+//        if(userInfo.GroupMemeberList.get(fromUserName) != null){
+//          if(userInfo.GroupMemeberList(fromUserName).get(memName) != null){
+//            if(userInfo.GroupMemeberList(fromUserName)(memName).displayName.equals("")){
+//              userInfo.GroupMemeberList(fromUserName)(memName).nickName
+//            }
+//            else{
+//              userInfo.GroupMemeberList(fromUserName)(memName).displayName
+//            }
+//          }
+//          else{
+//            groupName
+//          }
+//        }
+//        else{
+//          groupName
+//        }
+//      }
+//      else{
+//        groupName
+//      }
+      val groupInfo = Await.result(groupDao.getGroupByUnionId(fromUserName),10.second)
+      val memberInfo = Await.result(memberDao.getMemberByUnionId(memName),10.second)
+      var groupName = "未知"
+      var memberName = "未知"
+      if(groupInfo.isDefined && memberInfo.isDefined) {
+        groupName = groupInfo.get.groupnickname
+        memberName = if (memberInfo.get.userdisplayname.equals("")) memberInfo.get.usernickname else memberInfo.get.userdisplayname
       }
-      else{
-        groupName
-      }
-//      val groupInfo = Await.result(groupDao.getGroupByUnionId(fromUserName),10.second)
-//      val memberInfo = Await.result(memberDao.getMemberByUnionId(username),10.second)
-//      if(groupInfo.isDefined && memberInfo.isDefined) {
-//        val groupName = groupInfo.get.groupnickname
-//        val memberName = if (memberInfo.get.userdisplayname.equals("")) memberInfo.get.usernickname else memberInfo.get.userdisplayname
 //      log.info("收到新消息，msgtype:"+msgType)
         msgType match {
           case 1 => // 文本消息
@@ -301,8 +307,11 @@ class Slave @Inject() (userInfo: UserInfo,
             val statusNotifyUserName = (msg \ "StatusNotifyUserName").as[String]
             if(statusNotifyCode == 4 && statusNotifyUserName.length > 0) {
               val groupNotifyList = statusNotifyUserName.split(",").filter(m => m.startsWith("@@"))
-              log.info("联系人有更新(type:$msgType):"+msg)
+              log.info(s"联系人有更新(type:$msgType):$msg")
               self ! GetGroupContect(groupNotifyList)
+            }
+            else{
+              log.info(s"(type:$msgType)在手机上操作了微信：$content")
             }
           case 62 => // 小视频
             val msgId = (msg \ "MsgId").as[String]
@@ -318,7 +327,7 @@ class Slave @Inject() (userInfo: UserInfo,
         }
 //      }
 //      else{
-//        log.error(s"找不到群或成员，群（$fromUserName）成员（$username）")
+//        log.error(s"找不到群或成员，群（$fromUserName）成员（$memName）")
 //      }
     case SendMessage(msg: String, from: String, to: String) => //回复消息
       val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxsendmsg"
@@ -526,7 +535,7 @@ class Slave @Inject() (userInfo: UserInfo,
               6 可能是红包
               7 进入/离开聊天界面
           */
-            log.debug(userInfo.selfInfo.nickName+"收到心跳消息:" + body.toString.split("=")(1))
+            log.debug(userInfo.userid+"收到心跳消息:" + body.toString.split("=")(1))
             val retcode = body.split("=")(1).split("\"")(1)
             val selector = body.split("=")(1).split("\"")(3)
             if (retcode.equals("0")) {
@@ -545,9 +554,11 @@ class Slave @Inject() (userInfo: UserInfo,
             }
             else if(retcode.equals("1100")){
               log.info("retcode:1100 -> userid:" + userInfo.userid + " 从其他设备登入了网页版微信")
+//              context.stop(self)
             }
             else if(retcode.equals("1101")){
               log.info("retcode:1101 -> userid:" + userInfo.userid + " 手动登出了微信")
+//              context.stop(self)
             }
             else{
               log.info(s"retcode:$retcode -> SyncHost（${userInfo.syncHost}）失效,更换新host")
@@ -561,7 +572,7 @@ class Slave @Inject() (userInfo: UserInfo,
           }
         }
     case GetGroupContect(chatset) => // 获取群组详细信息
-      log.debug("开始批量获取群组详细信息")
+      log.debug("开始批量获取群组详细信息，群组数量:"+chatset.length)
       val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxbatchgetcontact"
 
       val cookies = userInfo.cookie
@@ -589,62 +600,48 @@ class Slave @Inject() (userInfo: UserInfo,
         try {
           val ret = (js \ "BaseResponse" \ "Ret").as[Int]
           if (ret == 0) {
+            log.debug("调试"+js)//EncryChatRoomId 盖世英雄 @88e87878df40cc8b362bce037fd4c6ec 5c7ab97adc76df4de260610829dcebcb 669644033
             val contactList = (js \ "ContactList").as[Seq[JsValue]]
             contactList.par.foreach { groups =>
               val groupName = (groups \ "UserName").asOpt[String].getOrElse("")
-              val groupNickName = (groups \ "NickName").asOpt[String].getOrElse("")
+              val groupNickName = if((groups \ "NickName").asOpt[String].getOrElse("").equals("")) "未命名群组" else (groups \ "NickName").asOpt[String].getOrElse("")
               val groupImg = (groups \ "HeadImgUrl").asOpt[String].getOrElse("")
-//              val memberCount = (groups \ "MemberCount").as[Int]
-              val memberList = (groups \ "MemberList").as[Seq[JsValue]]
-              userInfo.GroupList.put(groupName,BaseInfo(groupNickName,"",groupImg,"","",0))
-
-              val memberMap = new ConcurrentHashMap[String,BaseInfo]()
-              memberList.par.foreach { members =>
-                val memUserName = (members \ "UserName").asOpt[String].getOrElse("")
-                val memNickName = (members \ "NickName").asOpt[String].getOrElse("")
-                val memImg = (groups \ "HeadImgUrl").asOpt[String].getOrElse("")
-                val memDisplayName = (members \ "DisplayName").asOpt[String].getOrElse("")
-                val province = (members \ "Province").asOpt[String].getOrElse("")
-                val city = (members \ "City").asOpt[String].getOrElse("")
-                val sex = (members \ "Sex").asOpt[Int].getOrElse(0)
-                memberMap.put(memUserName,BaseInfo(memNickName,memDisplayName,memImg,province,city,sex))
-              }
-              userInfo.GroupMemeberList.put(groupName,memberMap)
+              val memberCount = (groups \ "MemberCount").as[Int]
+//              val memberList = (groups \ "MemberList").as[Seq[JsValue]]
+//              userInfo.GroupList.put(groupName,BaseInfo(groupNickName,"",groupImg,"","",0))
+//
+//              val memberMap = new ConcurrentHashMap[String,BaseInfo]()
+//              memberList.par.foreach { members =>
+//                val memUserName = (members \ "UserName").asOpt[String].getOrElse("")
+//                val memNickName = (members \ "NickName").asOpt[String].getOrElse("")
+//                val memImg = (groups \ "HeadImgUrl").asOpt[String].getOrElse("")
+//                val memDisplayName = (members \ "DisplayName").asOpt[String].getOrElse("")
+//                val province = (members \ "Province").asOpt[String].getOrElse("")
+//                val city = (members \ "City").asOpt[String].getOrElse("")
+//                val sex = (members \ "Sex").asOpt[Int].getOrElse(0)
+//                memberMap.put(memUserName,BaseInfo(memNickName,memDisplayName,memImg,province,city,sex))
+//              }
+//              userInfo.GroupMemeberList.put(groupName,memberMap)
               //数据库新增群组信息
 //              if (groupName.startsWith("@@")) {
-//                groupDao.createrGroup(groupName, groupNickName, groupImg, 0, userInfo.userid, memberCount).map { groupid =>
-//                  if (groupid > 0L) {
-//                    val memberList = (groups \ "MemberList").as[Seq[JsValue]]
-//                    memberList.par.foreach { members =>
-//                      val memUserName = (members \ "UserName").as[String]
-//                      val memNickName = (members \ "NickName").as[String]
-//                      val memDisplayName = (members \ "DisplayName").as[String]
-//                      //数据库新增成员信息
-//                      memberDao.createrMember(memUserName, memNickName, memDisplayName, groupid)
-//                    }
-//                  }
-//                }
+                groupDao.createrGroup(groupName, groupNickName, groupImg, 0, userInfo.userid, memberCount).map { groupid =>
+                  if (groupid > 0L) {
+                    val memberList = (groups \ "MemberList").as[Seq[JsValue]]
+                    val memListLen = memberList.length
+                    log.info(s"数据库新增群：$groupName 成员数量：$memListLen")
+                    val seqInfo = memberList.map { members =>
+                      val memUserName = (members \ "UserName").as[String]
+                      val memNickName = (members \ "NickName").as[String]
+                      val memDisplayName = (members \ "DisplayName").as[String]
+                      //数据库新增成员信息
+                      (memUserName,memNickName,memDisplayName,groupid)
+                    }
+                    memberDao.batchCreaterMember(seqInfo)  //批量插入成员数据
+//                    memberDao.createrMember(memUserName, memNickName, memDisplayName, groupid)
+                  }
+                }
 //              }
             }
-
-
-//            saveGroupInfo(contactList) // 将群组信息存在数据库中
-//            contactList.foreach { m =>
-//              val nickname = (m \ "NickName").as[String]
-//              log.debug("nickname" + nickname)
-//              if (nickname.equals("盖世英雄")) {
-//                val groupUserName = (m \ "UserName").as[String]
-//                val memberList = (m \ "MemberList").as[Seq[JsValue]]
-//                memberList.foreach { member =>
-//                  val memUserName = (member \ "UserName").as[String]
-//                  val memNickName = (member \ "NickName").as[String]
-//                  //Todo 这里获取更多的用户信息
-//                  val memDisplayName = (member \ "DisplayName").as[String]
-//                  memberMap.put(memUserName, memDisplayName) // (用户id，用户在群里的昵称)
-//                }
-//                groupMap.put(groupUserName, memberMap) // (群id，用户map)
-//              }
-//            }
 
 //            self ! SyncCheck()
           }
@@ -716,7 +713,8 @@ class Slave @Inject() (userInfo: UserInfo,
       httpUtil.postJsonRequestSend("webwxstatusnotify", baseUrl, params, postData, cookies).map { js =>
         try {
           log.debug("webwxstatusnotify:" + js)
-          self ! GetContect("0")//Todo debug
+//          self ! GetContect("0")//Todo debug
+          self ! SyncCheck()
         } catch {
           case ex: Throwable =>
             ex.printStackTrace()

@@ -1,3 +1,5 @@
+import sbt.Keys.libraryDependencies
+
 name := "WeChatBoot"
 
 version := "1.0"
@@ -27,7 +29,6 @@ libraryDependencies ++= {
   val twitterVersion = "6.22.1"
   val postgreVersion = "9.4.1208"
   val nsalatimeVersion = "2.0.0"
-
   Seq(
     "com.typesafe.play" %% "play-slick" % playSlickV,
     "org.scala-lang.modules" % "scala-xml_2.11" % scalaXmlV,
@@ -40,8 +41,8 @@ libraryDependencies ++= {
     "org.apache.httpcomponents" % "httpclient" % httpclientVersion withSources(),
     "org.apache.httpcomponents" % "httpcore" % httpcoreVersion withSources(),
     "org.apache.httpcomponents" % "httpmime" % httpclientVersion withSources(),
-    "com.github.nscala-time" % "nscala-time_2.11" % nsalatimeVersion
-
+    "com.github.nscala-time" % "nscala-time_2.11" % nsalatimeVersion,
+    "com.twitter" % "util-core_2.10" % twitterVersion
   )
 
 }

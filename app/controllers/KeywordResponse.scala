@@ -34,7 +34,8 @@ class KeywordResponse @Inject()(
     val response = (jsonData \ "response").as[String]
     val triggertype = (jsonData \ "triggertype").as[Int]
     val userid = (jsonData \ "userid").as[Long]
-    keywordResponseDao.createrKeywordResponse(keyword,restype,response,triggertype,userid).map{ res =>
+    val groupid = (jsonData \ "groupid").as[Long]
+    keywordResponseDao.createrKeywordResponse(keyword,restype,response,triggertype,userid,groupid).map{ res =>
       if(res > 0){
         Ok(success)
       }
@@ -52,7 +53,8 @@ class KeywordResponse @Inject()(
     val response = (jsonData \ "response").as[String]
     val triggertype = (jsonData \ "triggertype").as[Int]
     val userid = (jsonData \ "userid").as[Long]
-    keywordResponseDao.changeKeywordResponseList(id,userid,keyword,restype,response,triggertype).map{ res =>
+    val groupid = (jsonData \ "groupid").as[Long]
+    keywordResponseDao.changeKeywordResponseList(id,userid,keyword,restype,response,triggertype,groupid).map{ res =>
       if(res > 0){
         Ok(success)
       }

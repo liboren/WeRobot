@@ -26,11 +26,12 @@ class KeywordResponseDao @Inject()(
   * @param response 文本内容或图片地址
   * @param triggertype 触发类型，1-精确匹配，0-模糊匹配
   * @param userid 用户id
+  * @param groupid 群组id
   * @return 新增的自增id
   * */
-  def createrKeywordResponse(keyword:String,restype:Int,response:String,triggertype:Int,userid:Long) ={
-    db.run(tKeywordresponse.map(i => (i.keyword,i.restype,i.response,i.triggertype,i.userid)).returning(tKeywordresponse.map(_.id)) +=
-      (keyword,restype,response,triggertype,userid)
+  def createrKeywordResponse(keyword:String,restype:Int,response:String,triggertype:Int,userid:Long,groupid:Long) ={
+    db.run(tKeywordresponse.map(i => (i.keyword,i.restype,i.response,i.triggertype,i.userid,i.groupid)).returning(tKeywordresponse.map(_.id)) +=
+      (keyword,restype,response,triggertype,userid,groupid)
     ).mapTo[Long]
   }
 
@@ -40,7 +41,7 @@ class KeywordResponseDao @Inject()(
     * @return 该用户的关键词回复列表
     * */
   def getKeywordResponseList(userid:Long) = db.run(
-    tKeywordresponse.filter(_.userid === userid).result
+    tKeywordresponse.filter(m => m.userid === userid).result
   )
 
   /**
@@ -51,9 +52,10 @@ class KeywordResponseDao @Inject()(
     * @param response 文本内容或图片地址
     * @param triggertype 触发类型，1-精确匹配，0-模糊匹配
     * @param userid 用户id
+    * @param groupid 群组id
     * @return 更新结果
     * */
-  def changeKeywordResponseList(id:Long,userid:Long,keyword:String,restype:Int,response:String,triggertype:Int) = {
+  def changeKeywordResponseList(id:Long,userid:Long,keyword:String,restype:Int,response:String,triggertype:Int,groupid:Long) = {
     db.run(tKeywordresponse.filter( m => m.userid === userid && m.id === id).map(m => (m.keyword,m.restype,m.response,m.triggertype))
       .update(keyword,restype,response,triggertype))
   }

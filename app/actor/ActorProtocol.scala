@@ -1,5 +1,6 @@
 package actor
 
+import akka.actor.ActorRef
 import play.api.libs.json.{JsObject, JsValue, Json}
 
 import scala.collection.mutable
@@ -54,9 +55,12 @@ class UserInfo{
   var cookie = ""
 }
 
+//Master
 case class NewUserLogin(userInfo: UserInfo)
 case class GetUuid()
 case class CheckUserLogin(uuid:String)
+case class CreateSchedule(userInfo: UserInfo,slave:ActorRef)
+//Slave
 case class BeginInit()
 case class SendMessage(msg:String,from:String,to:String)
 case class ProcessNewMessage(msgList:Seq[JsValue])
@@ -68,6 +72,6 @@ case class StatusNotify()
 case class WXInit()
 case class GetTicketAndKey()
 case class SyncCheckKey()
-case class HandleMsg(fromUserName:String,toUserName:String,msgType:Int,msg:JsValue
-
-                    )
+case class HandleMsg(fromUserName:String,toUserName:String,msgType:Int,msg:JsValue)
+//ScheduleTask
+case class ReceivedTask(userInfo: UserInfo,slave:ActorRef,triggerTime:Int)

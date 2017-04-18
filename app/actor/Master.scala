@@ -2,26 +2,28 @@ package actor
 
 import javax.inject.{Inject, Singleton}
 
-import akka.actor.Actor
+import akka.actor.{Actor, PoisonPill}
 import common.Constants.WeixinAPI
-import models.dao.{GroupDao, KeywordResponseDao, MemberDao}
+import models.dao.{GroupDao, KeywordResponseDao, MemberDao, ScheduleResponseDao}
 import play.api.Logger
 import play.api.libs.json.Json
 import util.HttpUtil
-
+import util.TimeFormatUtil._
+import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
   * Created by Macbook on 2017/4/13.
   */
 
-object Master{
 
-}
 
 @Singleton
-class Master @Inject()(httpUtil: HttpUtil,keywordResponseDao: KeywordResponseDao,memberDao: MemberDao,
-                       groupDao: GroupDao) extends Actor with ActorProtocol{
+class Master @Inject()(httpUtil: HttpUtil,
+                       keywordResponseDao: KeywordResponseDao,
+                       memberDao: MemberDao,
+                       groupDao: GroupDao,
+                       scheduleResponseDao: ScheduleResponseDao) extends Actor with ActorProtocol{
   private final val log = Logger(this.getClass)
   log.debug("------------------  Master created")
 
@@ -36,11 +38,21 @@ class Master @Inject()(httpUtil: HttpUtil,keywordResponseDao: KeywordResponseDao
   }
 
   override def receive:Receive = {
+    case CreateSchedule(userInfo,slave) =>
+      val task = context.actorOf(ScheduleTask.props(scheduleResponseDao,groupDao),"schedule"+userInfo.userid)
+      context.watch(task)
+      context.system.scheduler.schedule(howLongToNextHalfHour.minute,1.minute,task,ReceivedTask(userInfo,slave,formatThirtyMinute))
     case NewUserLogin(userInfo:UserInfo) => // 有新的用户扫码登录
-      val slave = context.actorOf(Slave.props(userInfo,httpUtil,keywordResponseDao,memberDao,groupDao))
-      context.watch(slave)
-      slave ! BeginInit() // Todo
-
+      if(context.child("slave"+userInfo.userid).isDefined) {
+        log.debug(s" slave(${userInfo.userid}) is existed.")
+        context.child("slave"+userInfo.userid).get ! BeginInit()
+      }
+      else {
+        val slave = context.actorOf(Slave.props(userInfo, httpUtil, keywordResponseDao, memberDao, groupDao), "slave" + userInfo.userid)
+        context.watch(slave)
+        slave ! BeginInit() // Todo
+        self ! CreateSchedule(userInfo,slave)
+      }
     case GetUuid() => // 获取二维码uuid
       val send = sender()
       log.info("Strat get 2d code uuid!")

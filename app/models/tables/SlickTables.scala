@@ -14,47 +14,46 @@ trait SlickTables {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = tAutoresponse.schema ++ tGroup.schema ++ tGroupuser.schema ++ tKeywordresponse.schema ++ tSystemuser.schema
+  lazy val schema: profile.SchemaDescription = Array(tAutoresponse.schema, tGroup.schema, tGroupuser.schema, tKeywordresponse.schema, tScheduleresponse.schema, tSystemuser.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
   /** Entity class storing rows of table tAutoresponse
     *  @param id Database column id SqlType(BIGINT), AutoInc, PrimaryKey
-    *  @param groupid Database column groupid SqlType(BIGINT)
-    *  @param groupname Database column groupname SqlType(VARCHAR), Length(255,true)
-    *  @param userid Database column userid SqlType(BIGINT)
+    *  @param restype Database column restype SqlType(INT)
     *  @param response Database column response SqlType(VARCHAR), Length(255,true)
-    *  @param responsetype Database column responsetype SqlType(INT) */
-  case class rAutoresponse(id: Long, groupid: Long, groupname: String, userid: Long, response: String, responsetype: Int)
+    *  @param triggertype Database column triggertype SqlType(INT)
+    *  @param userid Database column userid SqlType(BIGINT)
+    *  @param groupid Database column groupid SqlType(BIGINT) */
+  case class rAutoresponse(id: Long, restype: Int, response: String, triggertype: Int, userid: Long, groupid: Long)
   /** GetResult implicit for fetching rAutoresponse objects using plain SQL queries */
-  implicit def GetResultrAutoresponse(implicit e0: GR[Long], e1: GR[String], e2: GR[Int]): GR[rAutoresponse] = GR{
+  implicit def GetResultrAutoresponse(implicit e0: GR[Long], e1: GR[Int], e2: GR[String]): GR[rAutoresponse] = GR{
     prs => import prs._
-      rAutoresponse.tupled((<<[Long], <<[Long], <<[String], <<[Long], <<[String], <<[Int]))
+      rAutoresponse.tupled((<<[Long], <<[Int], <<[String], <<[Int], <<[Long], <<[Long]))
   }
   /** Table description of table autoresponse. Objects of this class serve as prototypes for rows in queries. */
   class tAutoresponse(_tableTag: Tag) extends Table[rAutoresponse](_tableTag, "autoresponse") {
-    def * = (id, groupid, groupname, userid, response, responsetype) <> (rAutoresponse.tupled, rAutoresponse.unapply)
+    def * = (id, restype, response, triggertype, userid, groupid) <> (rAutoresponse.tupled, rAutoresponse.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(groupid), Rep.Some(groupname), Rep.Some(userid), Rep.Some(response), Rep.Some(responsetype)).shaped.<>({r=>import r._; _1.map(_=> rAutoresponse.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(restype), Rep.Some(response), Rep.Some(triggertype), Rep.Some(userid), Rep.Some(groupid)).shaped.<>({r=>import r._; _1.map(_=> rAutoresponse.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(BIGINT), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
-    /** Database column groupid SqlType(BIGINT) */
-    val groupid: Rep[Long] = column[Long]("groupid")
-    /** Database column groupname SqlType(VARCHAR), Length(255,true) */
-    val groupname: Rep[String] = column[String]("groupname", O.Length(255,varying=true))
-    /** Database column userid SqlType(BIGINT) */
-    val userid: Rep[Long] = column[Long]("userid")
+    /** Database column restype SqlType(INT) */
+    val restype: Rep[Int] = column[Int]("restype")
     /** Database column response SqlType(VARCHAR), Length(255,true) */
     val response: Rep[String] = column[String]("response", O.Length(255,varying=true))
-    /** Database column responsetype SqlType(INT) */
-    val responsetype: Rep[Int] = column[Int]("responsetype")
+    /** Database column triggertype SqlType(INT) */
+    val triggertype: Rep[Int] = column[Int]("triggertype")
+    /** Database column userid SqlType(BIGINT) */
+    val userid: Rep[Long] = column[Long]("userid")
+    /** Database column groupid SqlType(BIGINT) */
+    val groupid: Rep[Long] = column[Long]("groupid")
 
-    /** Foreign key referencing tSystemuser (database name fk_userid) */
-    lazy val tSystemuserFk = foreignKey("fk_userid", userid, tSystemuser)(r => r.userid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
-
-    /** Index over (groupid) (database name index_groupid) */
-    val index1 = index("index_groupid", groupid)
+    /** Foreign key referencing tGroup (database name autoresponse_fk_groupid) */
+    lazy val tGroupFk = foreignKey("autoresponse_fk_groupid", groupid, tGroup)(r => r.groupid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+    /** Foreign key referencing tSystemuser (database name autoresponse_ibfk_1) */
+    lazy val tSystemuserFk = foreignKey("autoresponse_ibfk_1", userid, tSystemuser)(r => r.userid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
   }
   /** Collection-like TableQuery object for table tAutoresponse */
   lazy val tAutoresponse = new TableQuery(tag => new tAutoresponse(tag))
@@ -131,6 +130,9 @@ trait SlickTables {
 
     /** Foreign key referencing tGroup (database name fk_groupid) */
     lazy val tGroupFk = foreignKey("fk_groupid", groupid, tGroup)(r => r.groupid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+
+    /** Index over (userunionid) (database name index_userunionid) */
+    val index1 = index("index_userunionid", userunionid)
   }
   /** Collection-like TableQuery object for table tGroupuser */
   lazy val tGroupuser = new TableQuery(tag => new tGroupuser(tag))
@@ -141,18 +143,19 @@ trait SlickTables {
     *  @param restype Database column restype SqlType(INT)
     *  @param response Database column response SqlType(VARCHAR), Length(255,true)
     *  @param triggertype Database column triggertype SqlType(INT)
-    *  @param userid Database column userid SqlType(BIGINT) */
-  case class rKeywordresponse(id: Long, keyword: String, restype: Int, response: String, triggertype: Int, userid: Long)
+    *  @param userid Database column userid SqlType(BIGINT)
+    *  @param groupid Database column groupid SqlType(BIGINT) */
+  case class rKeywordresponse(id: Long, keyword: String, restype: Int, response: String, triggertype: Int, userid: Long, groupid: Long)
   /** GetResult implicit for fetching rKeywordresponse objects using plain SQL queries */
   implicit def GetResultrKeywordresponse(implicit e0: GR[Long], e1: GR[String], e2: GR[Int]): GR[rKeywordresponse] = GR{
     prs => import prs._
-      rKeywordresponse.tupled((<<[Long], <<[String], <<[Int], <<[String], <<[Int], <<[Long]))
+      rKeywordresponse.tupled((<<[Long], <<[String], <<[Int], <<[String], <<[Int], <<[Long], <<[Long]))
   }
   /** Table description of table keywordresponse. Objects of this class serve as prototypes for rows in queries. */
   class tKeywordresponse(_tableTag: Tag) extends Table[rKeywordresponse](_tableTag, "keywordresponse") {
-    def * = (id, keyword, restype, response, triggertype, userid) <> (rKeywordresponse.tupled, rKeywordresponse.unapply)
+    def * = (id, keyword, restype, response, triggertype, userid, groupid) <> (rKeywordresponse.tupled, rKeywordresponse.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(keyword), Rep.Some(restype), Rep.Some(response), Rep.Some(triggertype), Rep.Some(userid)).shaped.<>({r=>import r._; _1.map(_=> rKeywordresponse.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(keyword), Rep.Some(restype), Rep.Some(response), Rep.Some(triggertype), Rep.Some(userid), Rep.Some(groupid)).shaped.<>({r=>import r._; _1.map(_=> rKeywordresponse.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(BIGINT), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
@@ -166,12 +169,66 @@ trait SlickTables {
     val triggertype: Rep[Int] = column[Int]("triggertype")
     /** Database column userid SqlType(BIGINT) */
     val userid: Rep[Long] = column[Long]("userid")
+    /** Database column groupid SqlType(BIGINT) */
+    val groupid: Rep[Long] = column[Long]("groupid")
 
+    /** Foreign key referencing tGroup (database name keywordresponse_fk_groupid) */
+    lazy val tGroupFk = foreignKey("keywordresponse_fk_groupid", groupid, tGroup)(r => r.groupid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
     /** Foreign key referencing tSystemuser (database name fk_userid1) */
     lazy val tSystemuserFk = foreignKey("fk_userid1", userid, tSystemuser)(r => r.userid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
   }
   /** Collection-like TableQuery object for table tKeywordresponse */
   lazy val tKeywordresponse = new TableQuery(tag => new tKeywordresponse(tag))
+
+  /** Entity class storing rows of table tScheduleresponse
+    *  @param id Database column id SqlType(BIGINT), AutoInc, PrimaryKey
+    *  @param groupid Database column groupid SqlType(BIGINT)
+    *  @param groupname Database column groupname SqlType(VARCHAR), Length(255,true)
+    *  @param userid Database column userid SqlType(BIGINT)
+    *  @param response Database column response SqlType(VARCHAR), Length(255,true)
+    *  @param responsetype Database column responsetype SqlType(INT)
+    *  @param state Database column state SqlType(INT)
+    *  @param triggertime Database column triggertime SqlType(INT)
+    *  @param triggerday Database column triggerday SqlType(INT) */
+  case class rScheduleresponse(id: Long, groupid: Long, groupname: String, userid: Long, response: String, responsetype: Int, state: Int, triggertime: Int, triggerday: Int)
+  /** GetResult implicit for fetching rScheduleresponse objects using plain SQL queries */
+  implicit def GetResultrScheduleresponse(implicit e0: GR[Long], e1: GR[String], e2: GR[Int]): GR[rScheduleresponse] = GR{
+    prs => import prs._
+      rScheduleresponse.tupled((<<[Long], <<[Long], <<[String], <<[Long], <<[String], <<[Int], <<[Int], <<[Int], <<[Int]))
+  }
+  /** Table description of table scheduleresponse. Objects of this class serve as prototypes for rows in queries. */
+  class tScheduleresponse(_tableTag: Tag) extends Table[rScheduleresponse](_tableTag, "scheduleresponse") {
+    def * = (id, groupid, groupname, userid, response, responsetype, state, triggertime, triggerday) <> (rScheduleresponse.tupled, rScheduleresponse.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = (Rep.Some(id), Rep.Some(groupid), Rep.Some(groupname), Rep.Some(userid), Rep.Some(response), Rep.Some(responsetype), Rep.Some(state), Rep.Some(triggertime), Rep.Some(triggerday)).shaped.<>({r=>import r._; _1.map(_=> rScheduleresponse.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get, _9.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column id SqlType(BIGINT), AutoInc, PrimaryKey */
+    val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
+    /** Database column groupid SqlType(BIGINT) */
+    val groupid: Rep[Long] = column[Long]("groupid")
+    /** Database column groupname SqlType(VARCHAR), Length(255,true) */
+    val groupname: Rep[String] = column[String]("groupname", O.Length(255,varying=true))
+    /** Database column userid SqlType(BIGINT) */
+    val userid: Rep[Long] = column[Long]("userid")
+    /** Database column response SqlType(VARCHAR), Length(255,true) */
+    val response: Rep[String] = column[String]("response", O.Length(255,varying=true))
+    /** Database column responsetype SqlType(INT) */
+    val responsetype: Rep[Int] = column[Int]("responsetype")
+    /** Database column state SqlType(INT) */
+    val state: Rep[Int] = column[Int]("state")
+    /** Database column triggertime SqlType(INT) */
+    val triggertime: Rep[Int] = column[Int]("triggertime")
+    /** Database column triggerday SqlType(INT) */
+    val triggerday: Rep[Int] = column[Int]("triggerday")
+
+    /** Foreign key referencing tSystemuser (database name fk_userid) */
+    lazy val tSystemuserFk = foreignKey("fk_userid", userid, tSystemuser)(r => r.userid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+
+    /** Index over (groupid) (database name index_groupid) */
+    val index1 = index("index_groupid", groupid)
+  }
+  /** Collection-like TableQuery object for table tScheduleresponse */
+  lazy val tScheduleresponse = new TableQuery(tag => new tScheduleresponse(tag))
 
   /** Entity class storing rows of table tSystemuser
     *  @param userid Database column userid SqlType(BIGINT), AutoInc, PrimaryKey

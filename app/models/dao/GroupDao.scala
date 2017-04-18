@@ -31,9 +31,9 @@ class GroupDao @Inject()(
     * @return 群的自增id
     * */
   def createrGroup(groupUnionId:String,groupNickName:String,headImgUrl:String,state:Int,ownerid:Long,memberCount:Int) ={
-    groupIsExist(groupNickName,ownerid).flatMap{ exist =>
+    groupIsExist(groupNickName,ownerid,memberCount).flatMap{ exist =>
       if(exist.isDefined){
-        deleteGroup(exist.get.groupid,exist.get.ownerid).flatMap{ res =>
+        deleteGroup(exist.get.groupid,exist.get.ownerid,memberCount).flatMap{ res =>
           if(res > 0){
             db.run(tGroup.map(i => (i.groupunionid,i.groupnickname,i.headimgurl,i.state,i.ownerid,i.membercount)).returning(tGroup.map(_.groupid)) +=
               (groupUnionId,groupNickName,headImgUrl,state,ownerid,memberCount)
@@ -69,8 +69,8 @@ class GroupDao @Inject()(
     * @param userid 所属用户id
     * @return 删除结果
     * */
-  def deleteGroup(groupid:Long,userid:Long) = db.run(
-    tGroup.filter( m => m.groupid === groupid && m.ownerid === userid).delete
+  def deleteGroup(groupid:Long,userid:Long,memberCount:Int) = db.run(
+    tGroup.filter( m => m.groupid === groupid && m.ownerid === userid && m.membercount === memberCount).delete
   )
 
   /**
@@ -79,8 +79,8 @@ class GroupDao @Inject()(
     * @param userid 所属用户id
     * @return true or false
     * */
-  def groupIsExist(groupNickName:String,userid:Long) = db.run(
-    tGroup.filter(m => m.groupnickname === groupNickName && m.ownerid === userid).result.headOption
+  def groupIsExist(groupNickName:String,userid:Long,memCount:Int) = db.run(
+    tGroup.filter(m => m.groupnickname === groupNickName && m.ownerid === userid && m.membercount === memCount).result.headOption
   )
 
   /**
@@ -90,5 +90,15 @@ class GroupDao @Inject()(
     * */
   def getGroupByUnionId(groupUnionId:String) = db.run(
     tGroup.filter(m => m.groupunionid === groupUnionId).result.headOption
+  )
+
+  /**
+    * 获取某个群信息
+    * @param groupname 群昵称
+    * @param userid 用户id
+    * @return Option
+    * */
+  def getGroupByName(groupname:String,userid:Long) = db.run(
+    tGroup.filter(m => m.groupnickname === groupname && m.ownerid === userid).result.headOption
   )
 }
