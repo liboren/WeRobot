@@ -74,4 +74,4 @@ case class GetTicketAndKey()
 case class SyncCheckKey()
 case class HandleMsg(fromUserName:String,toUserName:String,msgType:Int,msg:JsValue)
 //ScheduleTask
-case class ReceivedTask(userInfo: UserInfo,slave:ActorRef,triggerTime:Int)
+case class ReceivedTask(userInfo: UserInfo,slave:ActorRef)

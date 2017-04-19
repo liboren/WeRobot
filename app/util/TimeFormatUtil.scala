@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory
  * Created by liboren on 2017/04/18.
  */
 
-object TimeFormatUtil{
+object TimeFormatUtil extends App{
   val log = LoggerFactory.getLogger(this.getClass)
 
   def toMilliseconds(date: String, format: String = "yyyy-MM-dd HH:mm:ss"): Long = {
@@ -24,32 +24,23 @@ object TimeFormatUtil{
     val calendar = Calendar.getInstance()
     calendar.setTime(new Date())
     val week = calendar.get(Calendar.DAY_OF_WEEK)
-    System.out.print("week:" + week)
-    week
+    Math.pow(2,week).toInt
   }
 
-  def howLongToNextHalfHour = {
+  def howLongToNextMinute = {
     val calendar = Calendar.getInstance()
     calendar.setTime(new Date())
-    val minute = calendar.get(Calendar.MINUTE)
-    val restTime = if(minute >= 30){
-      60 - minute
-    }
-    else{
-      30 - minute
-    }
-    System.out.print("rest minutes:" + restTime)
-    restTime
+    val second = calendar.get(Calendar.SECOND)
+    60 - second
   }
 
-  def formatThirtyMinute = { //0 ~ 47 表示00:00 ~ 23:30 每30分钟一个间隔
+  def formatMinute = { //0 ~ 47 表示00:00 ~ 23:30 每30分钟一个间隔
     val calendar = Calendar.getInstance()
     calendar.setTime(new Date())
     val hour = calendar.get(Calendar.HOUR_OF_DAY)
     val minute = calendar.get(Calendar.MINUTE)
-    System.out.println("hour:"+hour+"minute:"+minute)
-    val minuteFormat = if(minute >= 30) 1 else 0
-    hour * 2 + minuteFormat
+    hour * 60 + minute
   }
-
+  System.out.println(howLongToNextMinute)
+  System.out.println(whichDayOfWeek)
 }

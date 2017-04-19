@@ -372,8 +372,8 @@ class Slave @Inject() (userInfo: UserInfo,
             log.info(s"回复消息成功:\r\nfrom:$from \r\nto:$to \r\n内容:【$msg】")
           }
           else{
-            val errMsg = (js \ "BaseResponse" \ "errMsg").as[String]
-            log.info(s"回复消息失败，原因：$errMsg")
+            val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+            log.info(s"回复消息失败，原因：ret:$ret errormsg:$errMsg")
           }
         } catch {
           case ex: Throwable =>
@@ -435,8 +435,8 @@ class Slave @Inject() (userInfo: UserInfo,
               self ! ProcessNewMessage(addMsgList)
           }
           else {
-            val errMsg = (js \ "BaseResponse" \ "errMsg").as[String]
-            log.error(s"获取新消息失败，原因:$errMsg")
+            val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+            log.error(s"获取新消息失败，原因:ret:$ret errmsg:$errMsg")
           }
           self ! SyncCheck()
         } catch {
@@ -483,8 +483,8 @@ class Slave @Inject() (userInfo: UserInfo,
               self ! ProcessNewMessage(addMsgList)
           }
           else {
-            val errMsg = (js \ "BaseResponse" \ "errMsg").as[String]
-            log.error(s"SyncCheckKey error,resaon:$errMsg")
+            val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+            log.error(s"SyncCheckKey error,resaon:ret:$ret errmsg:$errMsg")
           }
           self ! SyncCheck()
         } catch {
@@ -764,8 +764,8 @@ class Slave @Inject() (userInfo: UserInfo,
             self ! StatusNotify()
           }
           else {
-            val errMsg = (js \ "BaseResponse" \ "errMsg").as[String]
-            log.error("weixin init error:" + errMsg)
+            val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+            log.error(s"weixin init error:ret:$ret errormsg:$errMsg" )
           }
 
         } catch {

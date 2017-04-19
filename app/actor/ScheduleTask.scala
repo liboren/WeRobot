@@ -7,7 +7,7 @@ import common.Constants.WeixinAPI
 import models.dao.{GroupDao, KeywordResponseDao, MemberDao, ScheduleResponseDao}
 import play.api.Logger
 import play.api.libs.json.Json
-import util.HttpUtil
+import util.TimeFormatUtil._
 
 import concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -37,14 +37,18 @@ class ScheduleTask @Inject()(scheduleResponseDao: ScheduleResponseDao,groupDao: 
   }
 
   override def receive:Receive = {
-    case ReceivedTask(userInfo,slave,triggerTime) =>
+    case ReceivedTask(userInfo,slave) =>
+      val triggerTime = formatMinute
       log.debug("收到定时任务:"+triggerTime)
       scheduleResponseDao.getScheduleResponseByTriggerTime(triggerTime).map{ tasks =>
         tasks.foreach { task =>
-          groupDao.getGroupByName(task.groupname,task.userid).map { groupOpt =>
-            if(groupOpt.isDefined) {
-              log.debug(s"触发定时任务：群（${task.groupname}）回复内容（${task.response}）")
-              slave ! SendMessage(task.response, userInfo.username, groupOpt.get.groupunionid)
+          if((task.triggerday & whichDayOfWeek) > 0) {
+
+            groupDao.getGroupByName(task.groupname, task.userid).map { groupOpt =>
+              if (groupOpt.isDefined) {
+                log.debug(s"触发定时任务：群（${task.groupname}）回复内容（${task.response}）")
+                slave ! SendMessage(task.response, userInfo.username, groupOpt.get.groupunionid)
+              }
             }
           }
         }

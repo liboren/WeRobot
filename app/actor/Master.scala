@@ -41,7 +41,7 @@ class Master @Inject()(httpUtil: HttpUtil,
     case CreateSchedule(userInfo,slave) =>
       val task = context.actorOf(ScheduleTask.props(scheduleResponseDao,groupDao),"schedule"+userInfo.userid)
       context.watch(task)
-      context.system.scheduler.schedule(howLongToNextHalfHour.minute,1.minute,task,ReceivedTask(userInfo,slave,formatThirtyMinute))
+      context.system.scheduler.schedule(howLongToNextMinute.second,1.minute,task,ReceivedTask(userInfo,slave))
     case NewUserLogin(userInfo:UserInfo) => // 有新的用户扫码登录
       if(context.child("slave"+userInfo.userid).isDefined) {
         log.debug(s" slave(${userInfo.userid}) is existed.")
