@@ -46,4 +46,8 @@ class MemberDao @Inject()(
     tGroupuser.filter(m => m.userunionid === memberUnionId).result.headOption
   )
 
+  def getMemberByNickName(memNickName:String,groupid:Long) = db.run(
+    tGroupuser.filter(m => m.groupid === groupid && m.usernickname === memNickName).result.headOption
+  )
+
 }

@@ -2,13 +2,15 @@ package actor
 
 import javax.inject.{Inject, Singleton}
 
-import akka.actor.{Actor, PoisonPill}
+import akka.actor.SupervisorStrategy.Stop
+import akka.actor.{Actor, OneForOneStrategy, PoisonPill, Terminated}
 import common.Constants.WeixinAPI
 import models.dao.{GroupDao, KeywordResponseDao, MemberDao, ScheduleResponseDao}
 import play.api.Logger
 import play.api.libs.json.Json
 import util.HttpUtil
 import util.TimeFormatUtil._
+
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -27,6 +29,9 @@ class Master @Inject()(httpUtil: HttpUtil,
   private final val log = Logger(this.getClass)
   log.debug("------------------  Master created")
 
+//  override val supervisorStrategy: OneForOneStrategy = OneForOneStrategy() {
+//    case Terminated => Stop
+//  }
   @throws[Exception](classOf[Exception])
   override def preStart():Unit = {
     log.info(s"${self.path.name} starting...")
@@ -38,6 +43,14 @@ class Master @Inject()(httpUtil: HttpUtil,
   }
 
   override def receive:Receive = {
+    case SlaveStop(userid) =>
+      val slave = sender()
+      log.info(s"收到slave(${slave.path.name})停止消息..向slave和schedule发送poison pill")
+      context.unwatch(slave)
+      val schedule = context.child("schedule"+userid).getOrElse(context.system.deadLetters)
+      context.unwatch(schedule)
+      slave ! PoisonPill
+      schedule ! PoisonPill
     case CreateSchedule(userInfo,slave) =>
       val task = context.actorOf(ScheduleTask.props(scheduleResponseDao,groupDao),"schedule"+userInfo.userid)
       context.watch(task)

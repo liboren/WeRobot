@@ -159,6 +159,54 @@ class Slave @Inject() (userInfo: UserInfo,
 
 
   override def receive: Receive = {
+    case DeleteUserFromGroup(memNickName,groupNickName) => //踢出群成员，传入群昵称和成员昵称（不是displayName）
+      val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxupdatechatroom"
+      val cookies = userInfo.cookie
+      groupDao.getGroupByName(groupNickName,userInfo.userid).map { groupInfoOpt =>
+        if (groupInfoOpt.isDefined){
+          memberDao.getMemberByNickName(memNickName, groupInfoOpt.get.groupid).map { memInfoOpt =>
+            if(memInfoOpt.isDefined){
+              val params = List(
+                "fun" -> "delmember",
+                "pass_ticket" -> userInfo.pass_ticket
+              )
+              val postData = Json.obj(
+                "BaseRequest" -> Json.obj(
+                  "Uin" -> userInfo.wxuin,
+                  "Sid" -> userInfo.wxsid,
+                  "Skey" -> userInfo.skey,
+                  "DeviceID" -> userInfo.deviceId
+                ),
+                "DelMemberList" -> memInfoOpt.get.userunionid,
+                "ChatRoomName" -> groupInfoOpt.get.groupunionid
+              )
+              httpUtil.postJsonRequestSend("sendMessage", baseUrl, params, postData, cookies).map { js =>
+                try {
+                  val ret = (js \ "BaseResponse" \ "Ret").as[Int]
+                  if(ret == 0){
+                    log.info(s"踢出群成员成功:\r\n群:$groupNickName \r\n成员:$memNickName \r\n")
+                  }
+                  else{
+                    val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+                    log.info(s"踢出群成员失败，群$groupNickName 成员:$memNickName 原因：ret:$ret errormsg:$errMsg")
+                  }
+                } catch {
+                  case ex: Throwable =>
+                    ex.printStackTrace()
+                    log.error(s"error:" + js + s"ex: $ex")
+                }
+              }
+            }
+            else{
+              log.info(s"踢出群成员失败，群$groupNickName 中没有成员昵称为:$memNickName")
+            }
+          }
+        }
+        else {
+          log.info(s"踢出群成员失败，没有昵称为$groupNickName 的群")
+        }
+      }
+
     case BeginInit() =>
 //      val schedule = context.system.scheduler.schedule(5.second ,1.day,self,BeginInit())
 //      schedule.cancel()
@@ -194,12 +242,12 @@ class Slave @Inject() (userInfo: UserInfo,
       val groupInfo = Await.result(groupDao.getGroupByUnionId(fromUserName),10.second)
       val memberInfo = Await.result(memberDao.getMemberByUnionId(memName),10.second)
       var groupName = "未知"
-      var memberName = "未知"
+      var memberName = "未知" //
       if(groupInfo.isDefined && memberInfo.isDefined) {
         groupName = groupInfo.get.groupnickname
         memberName = if (memberInfo.get.userdisplayname.equals("")) memberInfo.get.usernickname else memberInfo.get.userdisplayname
       }
-//      log.info("收到新消息，msgtype:"+msgType)
+      log.info(s"收到新消息【$msg】")
         msgType match {
           case 1 => // 文本消息
             if (content.contains("@李暴龙")) {
@@ -551,14 +599,18 @@ class Slave @Inject() (userInfo: UserInfo,
 //                log.error("失去链接，原因retcode:" + retcode + " selector:" + selector)
 //                self ! PoisonPill
               }
+              else{
+                self ! SyncCheck()
+              }
             }
             else if(retcode.equals("1100")){
               log.info("retcode:1100 -> userid:" + userInfo.userid + " 从其他设备登入了网页版微信")
-//              context.stop(self)
+              context.parent ! SlaveStop(userInfo.userid)
+
             }
             else if(retcode.equals("1101")){
               log.info("retcode:1101 -> userid:" + userInfo.userid + " 手动登出了微信")
-//              context.stop(self)
+              context.parent ! SlaveStop(userInfo.userid)
             }
             else{
               log.info(s"retcode:$retcode -> SyncHost（${userInfo.syncHost}）失效,更换新host")

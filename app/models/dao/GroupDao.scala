@@ -94,11 +94,11 @@ class GroupDao @Inject()(
 
   /**
     * 获取某个群信息
-    * @param groupname 群昵称
+    * @param groupnickname 群昵称
     * @param userid 用户id
     * @return Option
     * */
-  def getGroupByName(groupname:String,userid:Long) = db.run(
-    tGroup.filter(m => m.groupnickname === groupname && m.ownerid === userid).result.headOption
+  def getGroupByName(groupnickname:String,userid:Long) = db.run(
+    tGroup.filter(m => m.groupnickname === groupnickname && m.ownerid === userid).result.headOption
   )
 }

@@ -1,4 +1,5 @@
-import play.api.libs.json.Json
-val body = "jsonp2({\"msg\": \"\\u5df2\\u7ecf\\u4e3a\\u4ed6\\u70b9\\u4eae\\u8fc7\\u4e86\", \"success\": false})"
-val js = Json.parse(body.split("jsonp2\\(")(1).split("\\)")(0))
-val msg =  new String((js \ "msg").as[String].getBytes("UTF-8"),"utf-8")
+//TODO 新人邀请 "FromUserName":"@@131473cf33f36c70ea5a95ce6c359a9e35f32c0ffbddf2e59e242f6a823ff2fa","ToUserName":"@fb6dce95633e13ca08e966a6f9a34e3c","MsgType":10000,"Content":"\" <span class=\"emoji emoji1f338\"></span>卷卷卷<span class=\"emoji emoji1f338\"></span>\"邀请\"Hou$e\"加入了群聊
+
+val str = "\" <span class=\"emoji emoji1f338\"></span>卷卷卷<span class=\"emoji emoji1f338\"></span>\"邀请\"Hou$e\"加入了群聊"
+val inviter = str.split("\"邀请\"")(0).re
+val invitee = str.split("\"邀请\"")(1).split("\"加入了群聊")(0).trim
