@@ -22,20 +22,20 @@ trait SlickTables {
     *  @param id Database column id SqlType(BIGINT), AutoInc, PrimaryKey
     *  @param restype Database column restype SqlType(INT)
     *  @param response Database column response SqlType(VARCHAR), Length(255,true)
-    *  @param triggertype Database column triggertype SqlType(INT)
     *  @param userid Database column userid SqlType(BIGINT)
-    *  @param groupid Database column groupid SqlType(BIGINT) */
-  case class rAutoresponse(id: Long, restype: Int, response: String, triggertype: Int, userid: Long, groupid: Long)
+    *  @param groupnickname Database column groupnickname SqlType(VARCHAR), Length(255,true)
+    *  @param state Database column state SqlType(INT) */
+  case class rAutoresponse(id: Long, restype: Int, response: String, userid: Long, groupnickname: String, state: Int)
   /** GetResult implicit for fetching rAutoresponse objects using plain SQL queries */
   implicit def GetResultrAutoresponse(implicit e0: GR[Long], e1: GR[Int], e2: GR[String]): GR[rAutoresponse] = GR{
     prs => import prs._
-      rAutoresponse.tupled((<<[Long], <<[Int], <<[String], <<[Int], <<[Long], <<[Long]))
+      rAutoresponse.tupled((<<[Long], <<[Int], <<[String], <<[Long], <<[String], <<[Int]))
   }
   /** Table description of table autoresponse. Objects of this class serve as prototypes for rows in queries. */
   class tAutoresponse(_tableTag: Tag) extends Table[rAutoresponse](_tableTag, "autoresponse") {
-    def * = (id, restype, response, triggertype, userid, groupid) <> (rAutoresponse.tupled, rAutoresponse.unapply)
+    def * = (id, restype, response, userid, groupnickname, state) <> (rAutoresponse.tupled, rAutoresponse.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(restype), Rep.Some(response), Rep.Some(triggertype), Rep.Some(userid), Rep.Some(groupid)).shaped.<>({r=>import r._; _1.map(_=> rAutoresponse.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(restype), Rep.Some(response), Rep.Some(userid), Rep.Some(groupnickname), Rep.Some(state)).shaped.<>({r=>import r._; _1.map(_=> rAutoresponse.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(BIGINT), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
@@ -43,17 +43,18 @@ trait SlickTables {
     val restype: Rep[Int] = column[Int]("restype")
     /** Database column response SqlType(VARCHAR), Length(255,true) */
     val response: Rep[String] = column[String]("response", O.Length(255,varying=true))
-    /** Database column triggertype SqlType(INT) */
-    val triggertype: Rep[Int] = column[Int]("triggertype")
     /** Database column userid SqlType(BIGINT) */
     val userid: Rep[Long] = column[Long]("userid")
-    /** Database column groupid SqlType(BIGINT) */
-    val groupid: Rep[Long] = column[Long]("groupid")
+    /** Database column groupnickname SqlType(VARCHAR), Length(255,true) */
+    val groupnickname: Rep[String] = column[String]("groupnickname", O.Length(255,varying=true))
+    /** Database column state SqlType(INT) */
+    val state: Rep[Int] = column[Int]("state")
 
-    /** Foreign key referencing tGroup (database name autoresponse_fk_groupid) */
-    lazy val tGroupFk = foreignKey("autoresponse_fk_groupid", groupid, tGroup)(r => r.groupid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
     /** Foreign key referencing tSystemuser (database name autoresponse_ibfk_1) */
     lazy val tSystemuserFk = foreignKey("autoresponse_ibfk_1", userid, tSystemuser)(r => r.userid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+
+    /** Index over (groupnickname) (database name autoresponse_fk_groupid) */
+    val index1 = index("autoresponse_fk_groupid", groupnickname)
   }
   /** Collection-like TableQuery object for table tAutoresponse */
   lazy val tAutoresponse = new TableQuery(tag => new tAutoresponse(tag))

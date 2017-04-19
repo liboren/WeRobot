@@ -5,7 +5,7 @@ import javax.inject.{Inject, Singleton}
 import akka.actor.SupervisorStrategy.Stop
 import akka.actor.{Actor, OneForOneStrategy, PoisonPill, Terminated}
 import common.Constants.WeixinAPI
-import models.dao.{GroupDao, KeywordResponseDao, MemberDao, ScheduleResponseDao}
+import models.dao._
 import play.api.Logger
 import play.api.libs.json.Json
 import util.HttpUtil
@@ -25,6 +25,7 @@ class Master @Inject()(httpUtil: HttpUtil,
                        keywordResponseDao: KeywordResponseDao,
                        memberDao: MemberDao,
                        groupDao: GroupDao,
+                       autoResponseDao: AutoResponseDao,
                        scheduleResponseDao: ScheduleResponseDao) extends Actor with ActorProtocol{
   private final val log = Logger(this.getClass)
   log.debug("------------------  Master created")
@@ -61,7 +62,7 @@ class Master @Inject()(httpUtil: HttpUtil,
         context.child("slave"+userInfo.userid).get ! BeginInit()
       }
       else {
-        val slave = context.actorOf(Slave.props(userInfo, httpUtil, keywordResponseDao, memberDao, groupDao), "slave" + userInfo.userid)
+        val slave = context.actorOf(Slave.props(userInfo, httpUtil, keywordResponseDao, memberDao,autoResponseDao, groupDao), "slave" + userInfo.userid)
         context.watch(slave)
         slave ! BeginInit() // Todo
         self ! CreateSchedule(userInfo,slave)

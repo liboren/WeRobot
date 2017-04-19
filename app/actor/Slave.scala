@@ -5,7 +5,7 @@ import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 import akka.actor.{Actor, Props}
-import models.dao.{GroupDao, KeywordResponseDao, MemberDao}
+import models.dao.{AutoResponseDao, GroupDao, KeywordResponseDao, MemberDao}
 import play.api.Logger
 import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsObject, JsValue, Json}
@@ -27,13 +27,15 @@ object Slave{
             httpUtil: HttpUtil,
             keywordResponseDao:KeywordResponseDao,
             memberDao: MemberDao,
-            groupDao: GroupDao) = Props(new Slave(userInfo,httpUtil,keywordResponseDao,memberDao,groupDao))
+            autoResponseDao: AutoResponseDao,
+            groupDao: GroupDao) = Props(new Slave(userInfo,httpUtil,keywordResponseDao,memberDao,autoResponseDao,groupDao))
 }
 
 class Slave @Inject() (userInfo: UserInfo,
                        httpUtil: HttpUtil,
                        keywordResponseDao:KeywordResponseDao,
                        memberDao: MemberDao,
+                       autoResponseDao: AutoResponseDao,
                        groupDao: GroupDao)  extends Actor with ActorProtocol {
 
   private final val log = Logger(this.getClass)
@@ -353,7 +355,7 @@ class Slave @Inject() (userInfo: UserInfo,
 
             val statusNotifyCode = (msg \ "StatusNotifyCode").as[Int]
             val statusNotifyUserName = (msg \ "StatusNotifyUserName").as[String]
-            if(statusNotifyCode == 4 && statusNotifyUserName.length > 0) {
+            if(statusNotifyUserName.length > 0) {
               val groupNotifyList = statusNotifyUserName.split(",").filter(m => m.startsWith("@@"))
               log.info(s"联系人有更新(type:$msgType):$msg")
               self ! GetGroupContect(groupNotifyList)
@@ -367,7 +369,27 @@ class Slave @Inject() (userInfo: UserInfo,
             log.info(s"\r\n收到视频消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】%视频地址【$videoUrl】")
           case 10000 => // 系统消息
             log.info(s"\r\n收到系统消息(type:$msgType)，内容：【$content】来自:【$groupName】")
-          //TODO 新人邀请 "FromUserName":"@@131473cf33f36c70ea5a95ce6c359a9e35f32c0ffbddf2e59e242f6a823ff2fa","ToUserName":"@fb6dce95633e13ca08e966a6f9a34e3c","MsgType":10000,"Content":"\" <span class=\"emoji emoji1f338\"></span>卷卷卷<span class=\"emoji emoji1f338\"></span>\"邀请\"Hou$e\"加入了群聊
+            //TODO 新人邀请 "FromUserName":"@@131473cf33f36c70ea5a95ce6c359a9e35f32c0ffbddf2e59e242f6a823ff2fa","ToUserName":"@fb6dce95633e13ca08e966a6f9a34e3c","MsgType":10000,"Content":"\" <span class=\"emoji emoji1f338\"></span>卷卷卷<span class=\"emoji emoji1f338\"></span>\"邀请\"Hou$e\"加入了群聊
+            val groupNickName = Await.result(groupDao.getGroupByUnionId(fromUserName),10.second).get.groupnickname
+            if(groupNickName.equals("火箭队")) {
+              if (content.contains("加入了群聊")) {
+                val inviter = content.split("邀请\"")(0)
+                val invitee = content.split("邀请\"")(1).split("\"加入了群聊")(0)
+                autoResponseDao.getAutoresponseByGroupNickName(userInfo.userid,groupNickName).map{ responseOpt =>
+                  if(responseOpt.isDefined){
+                    log.info(s"$inviter 邀请 $invitee 加入了群聊")
+                    self ! SendMessage(responseOpt.get.response.replaceAll("@被邀请人",s"@$invitee "), toUserName, fromUserName)
+                  }
+                }
+              }
+              else if (content.contains("移出了群聊")) {
+                val inviter = content.split("将\"")(0)
+                val invitee = content.split("将\"")(1).split("\"移出了群聊")(0)
+                log.info(s"$inviter 将 $invitee 移出了群聊")
+                self ! SendMessage(s"$invitee 被移出了群聊", toUserName, fromUserName)
+              }
+            }
+
           case 10002 => // 撤回消息
             log.info(s"\r\n【$groupName】撤回了一条消息(type:$msgType)，内容：【$content】")
           case _ => // 其他消息
