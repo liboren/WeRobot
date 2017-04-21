@@ -101,4 +101,8 @@ class GroupDao @Inject()(
   def getGroupByName(groupnickname:String,userid:Long) = db.run(
     tGroup.filter(m => m.groupnickname === groupnickname && m.ownerid === userid).result.headOption
   )
+
+  def changeGroupNickName(groupunionid:String,name:String) = db.run(
+    tGroup.filter(m => m.groupunionid === groupunionid).map(_.groupnickname).update(name)
+  )
 }

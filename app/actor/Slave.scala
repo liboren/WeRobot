@@ -152,7 +152,86 @@ class Slave @Inject() (userInfo: UserInfo,
 //  }
 
   override def receive: Receive = {
-    case AddUserToGroup(userunionid,groupunionid) => //邀请新人入群，传入群昵称和成员唯一id
+    case SetGroupName(groupunionid,name) => //设置群聊名称
+      val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxupdatechatroom"
+      val cookies = userInfo.cookie
+
+      val params = List(
+        "fun" -> "modtopic",
+        "pass_ticket" -> userInfo.pass_ticket
+      )
+      val postData = Json.obj(
+        "BaseRequest" -> Json.obj(
+          "Uin" -> userInfo.wxuin,
+          "Sid" -> userInfo.wxsid,
+          "Skey" -> userInfo.skey,
+          "DeviceID" -> userInfo.deviceId
+        ),
+        "NewTopic" -> name,
+        "ChatRoomName" -> groupunionid
+      )
+      httpUtil.postJsonRequestSend("add user to group", baseUrl, params, postData, cookies).map { js =>
+        try {
+          val ret = (js \ "BaseResponse" \ "Ret").as[Int]
+          if(ret == 0){
+            log.info(s"设置群名称成功:\r\n群:$groupunionid \r\n新名称:$name \r\n")
+            groupDao.changeGroupNickName(groupunionid,name).map{res =>
+              if(res > 0){
+                log.info(s"数据库更新群名称成功:群:$groupunionid 新名称:$name")
+              }
+            }
+          }
+          else{
+            val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+            log.info(s"设置群名称失败，群$groupunionid 新名称:$name 原因：ret:$ret errormsg:$errMsg")
+          }
+        } catch {
+          case ex: Throwable =>
+            ex.printStackTrace()
+            log.error(s"error:" + js + s"ex: $ex")
+        }
+      }.onFailure {
+        case e: Exception =>
+          log.error("add user to group with EXCEPTION：" + e.getMessage)
+      }
+    case InviteUserToGroup(userunionid,groupunionid) => //间接邀请新人入群，当群成员数大于100时需要用这种方式邀请传入群昵称和成员唯一id
+      val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxupdatechatroom"
+      val cookies = userInfo.cookie
+
+      val params = List(
+        "fun" -> "invitemember",
+        "pass_ticket" -> userInfo.pass_ticket
+      )
+      val postData = Json.obj(
+        "BaseRequest" -> Json.obj(
+          "Uin" -> userInfo.wxuin,
+          "Sid" -> userInfo.wxsid,
+          "Skey" -> userInfo.skey,
+          "DeviceID" -> userInfo.deviceId
+        ),
+        "InviteMemberList" -> userunionid,
+        "ChatRoomName" -> groupunionid
+      )
+      httpUtil.postJsonRequestSend("add user to group", baseUrl, params, postData, cookies).map { js =>
+        try {
+          val ret = (js \ "BaseResponse" \ "Ret").as[Int]
+          if(ret == 0){
+            log.info(s"间接邀请群成员成功:\r\n群:$groupunionid \r\n成员:$userunionid \r\n")
+          }
+          else{
+            val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+            log.info(s"间接邀请群成员失败，群$groupunionid 成员:$userunionid 原因：ret:$ret errormsg:$errMsg")
+          }
+        } catch {
+          case ex: Throwable =>
+            ex.printStackTrace()
+            log.error(s"error:" + js + s"ex: $ex")
+        }
+      }.onFailure {
+        case e: Exception =>
+          log.error("add user to group with EXCEPTION：" + e.getMessage)
+      }
+    case AddUserToGroup(userunionid,groupunionid) => //直接邀请新人入群，传入群昵称和成员唯一id
       val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxupdatechatroom"
       val cookies = userInfo.cookie
 
@@ -174,11 +253,12 @@ class Slave @Inject() (userInfo: UserInfo,
         try {
           val ret = (js \ "BaseResponse" \ "Ret").as[Int]
           if(ret == 0){
-            log.info(s"邀请群成员成功:\r\n群:$groupunionid \r\n成员:$userunionid \r\n")
+            log.info(s"直接邀请群成员成功:\r\n群:$groupunionid \r\n成员:$userunionid \r\n")
           }
           else{
             val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
-            log.info(s"邀请群成员失败，群$groupunionid 成员:$userunionid 原因：ret:$ret errormsg:$errMsg")
+            log.info(s"直接邀请群成员失败，群$groupunionid 成员:$userunionid 原因：ret:$ret errormsg:$errMsg")
+            self ! InviteUserToGroup(userunionid,groupunionid)
           }
         } catch {
           case ex: Throwable =>
@@ -189,8 +269,6 @@ class Slave @Inject() (userInfo: UserInfo,
         case e: Exception =>
           log.error("add user to group with EXCEPTION：" + e.getMessage)
       }
-
-
     case DeleteUserFromGroup(userunionid,groupunionid) => //踢出群成员，传入群昵称和成员昵称（不是displayName）
       val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxupdatechatroom"
       val cookies = userInfo.cookie
@@ -283,6 +361,10 @@ class Slave @Inject() (userInfo: UserInfo,
               val text = content.split(":<br/>")(1)
               if(text.contains("退群")){ // 触发退群关键字
                 self ! DeleteUserFromGroup(memName,fromUserName)
+              }
+              if(text.startsWith("改名")){
+                val newName = text.substring(3,text.length)
+                self ! SetGroupName(fromUserName,newName)
               }
               log.info(s"\r\n收到文本消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n内容【$text】")
             }

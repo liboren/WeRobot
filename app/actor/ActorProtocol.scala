@@ -78,5 +78,7 @@ case class SyncCheckKey()
 case class HandleMsg(fromUserName:String,toUserName:String,msgType:Int,msg:JsValue)
 case class DeleteUserFromGroup(memNickName:String,groupNickName:String)
 case class AddUserToGroup(memName:String,groupNickName:String)
+case class InviteUserToGroup(userunionid:String,groupunionid:String)
+case class SetGroupName(userunionid:String,name:String)
 //ScheduleTask
 case class ReceivedTask(userInfo: UserInfo,slave:ActorRef)
