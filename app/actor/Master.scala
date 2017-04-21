@@ -74,13 +74,13 @@ class Master @Inject()(httpUtil: HttpUtil,
       val appid = WeixinAPI.getUuid.appid
       val curTime = System.currentTimeMillis().toString
 
-      val postData = Map(
+      val params = List(
         "appid" -> appid,
         "fun" -> "new",
         "lang" -> "zh_CN",
         "_" -> curTime
       )
-      httpUtil.postFormRequestSend("get 2d code uuid", baseUrl,List(),postData).map { js =>
+      httpUtil.getBodyRequestSend("get 2d code uuid", baseUrl,params,null).map { js =>
         try {
           val res = js.toString
           log.info(s"$res")
@@ -95,6 +95,9 @@ class Master @Inject()(httpUtil: HttpUtil,
             send ! None
 //            Ok(jsonResponse(201,"error"))
         }
+      }.onFailure {
+        case e: Exception =>
+          log.error("get 2d code uuid with EXCEPTION：" + e.getMessage)
       }
     case CheckUserLogin(uuid)  => // 检查用户是否已扫码并登录
       val send = sender()
@@ -103,7 +106,6 @@ class Master @Inject()(httpUtil: HttpUtil,
       val baseUrl = "http://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login"
 
       val curTime = System.currentTimeMillis()
-      log.debug(s"current time:$curTime")
       val params = List(
         "loginicon" -> "true",
         "tip" -> "0",
@@ -112,25 +114,28 @@ class Master @Inject()(httpUtil: HttpUtil,
         "_" -> curTime.toString
       )
       httpUtil.getBodyRequestSend("check if user login", baseUrl,params,null).map { js =>
-          val res = js.toString
-        log.debug("登入返回"+res)
-          val code = res.split(";")(0).split("=")(1)
-          //登录成功
-          if (code == "200") {
-            val param = res.split(";")(1)
-            val list = param.split("&")
-            val ticket = list(0).split("\\?")(1).split("=")(1)
-            val scan = list(3).split("=")(1)
-            val userInfo = new UserInfo()
-            val baseUrl = param.split("https://")(1).split("cgi-bin")(0)
-            userInfo.base_uri = baseUrl
-            userInfo.uuid = uuid
-            userInfo.ticket = ticket
-            userInfo.scan = scan
-            userInfo.userid = 10000L // Todo 这里修改当前用户id
-            self ! NewUserLogin(userInfo)
-          }
-          send ! code
+        val res = js.toString
+        log.debug("登入返回" + res)
+        val code = res.split(";")(0).split("=")(1)
+        //登录成功
+        if (code == "200") {
+          val param = res.split(";")(1)
+          val list = param.split("&")
+          val ticket = list(0).split("\\?")(1).split("=")(1)
+          val scan = list(3).split("=")(1)
+          val userInfo = new UserInfo()
+          val baseUrl = param.split("https://")(1).split("cgi-bin")(0)
+          userInfo.base_uri = baseUrl
+          userInfo.uuid = uuid
+          userInfo.ticket = ticket
+          userInfo.scan = scan
+          userInfo.userid = 10000L // Todo 这里修改当前用户id
+          self ! NewUserLogin(userInfo)
+        }
+        send ! code
+      }.onFailure {
+        case e: Exception =>
+          log.error("check if user login with EXCEPTION：" + e.getMessage)
       }
   }
 }

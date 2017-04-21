@@ -145,18 +145,19 @@ trait SlickTables {
     *  @param response Database column response SqlType(VARCHAR), Length(255,true)
     *  @param triggertype Database column triggertype SqlType(INT)
     *  @param userid Database column userid SqlType(BIGINT)
-    *  @param groupid Database column groupid SqlType(BIGINT) */
-  case class rKeywordresponse(id: Long, keyword: String, restype: Int, response: String, triggertype: Int, userid: Long, groupid: Long)
+    *  @param groupnickname Database column groupnickname SqlType(VARCHAR), Length(255,true)
+    *  @param state Database column state SqlType(INT) */
+  case class rKeywordresponse(id: Long, keyword: String, restype: Int, response: String, triggertype: Int, userid: Long, groupnickname: String, state: Int)
   /** GetResult implicit for fetching rKeywordresponse objects using plain SQL queries */
   implicit def GetResultrKeywordresponse(implicit e0: GR[Long], e1: GR[String], e2: GR[Int]): GR[rKeywordresponse] = GR{
     prs => import prs._
-      rKeywordresponse.tupled((<<[Long], <<[String], <<[Int], <<[String], <<[Int], <<[Long], <<[Long]))
+      rKeywordresponse.tupled((<<[Long], <<[String], <<[Int], <<[String], <<[Int], <<[Long], <<[String], <<[Int]))
   }
   /** Table description of table keywordresponse. Objects of this class serve as prototypes for rows in queries. */
   class tKeywordresponse(_tableTag: Tag) extends Table[rKeywordresponse](_tableTag, "keywordresponse") {
-    def * = (id, keyword, restype, response, triggertype, userid, groupid) <> (rKeywordresponse.tupled, rKeywordresponse.unapply)
+    def * = (id, keyword, restype, response, triggertype, userid, groupnickname, state) <> (rKeywordresponse.tupled, rKeywordresponse.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (Rep.Some(id), Rep.Some(keyword), Rep.Some(restype), Rep.Some(response), Rep.Some(triggertype), Rep.Some(userid), Rep.Some(groupid)).shaped.<>({r=>import r._; _1.map(_=> rKeywordresponse.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (Rep.Some(id), Rep.Some(keyword), Rep.Some(restype), Rep.Some(response), Rep.Some(triggertype), Rep.Some(userid), Rep.Some(groupnickname), Rep.Some(state)).shaped.<>({r=>import r._; _1.map(_=> rKeywordresponse.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get, _8.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
 
     /** Database column id SqlType(BIGINT), AutoInc, PrimaryKey */
     val id: Rep[Long] = column[Long]("id", O.AutoInc, O.PrimaryKey)
@@ -170,13 +171,16 @@ trait SlickTables {
     val triggertype: Rep[Int] = column[Int]("triggertype")
     /** Database column userid SqlType(BIGINT) */
     val userid: Rep[Long] = column[Long]("userid")
-    /** Database column groupid SqlType(BIGINT) */
-    val groupid: Rep[Long] = column[Long]("groupid")
+    /** Database column groupnickname SqlType(VARCHAR), Length(255,true) */
+    val groupnickname: Rep[String] = column[String]("groupnickname", O.Length(255,varying=true))
+    /** Database column state SqlType(INT) */
+    val state: Rep[Int] = column[Int]("state")
 
-    /** Foreign key referencing tGroup (database name keywordresponse_fk_groupid) */
-    lazy val tGroupFk = foreignKey("keywordresponse_fk_groupid", groupid, tGroup)(r => r.groupid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
     /** Foreign key referencing tSystemuser (database name fk_userid1) */
     lazy val tSystemuserFk = foreignKey("fk_userid1", userid, tSystemuser)(r => r.userid, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+
+    /** Index over (groupnickname) (database name keywordresponse_fk_groupid) */
+    val index1 = index("keywordresponse_fk_groupid", groupnickname)
   }
   /** Collection-like TableQuery object for table tKeywordresponse */
   lazy val tKeywordresponse = new TableQuery(tag => new tKeywordresponse(tag))

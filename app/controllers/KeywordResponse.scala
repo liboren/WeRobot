@@ -21,8 +21,11 @@ class KeywordResponse @Inject()(
 
   private val log = Logger(this.getClass)
 
-  def getKeywordResponseList(userid:Long) = LoggingAction.async{ request =>
-    keywordResponseDao.getKeywordResponseList(userid).map{ keywordList =>
+  def getKeywordResponseList = LoggingAction.async{ request =>
+    val jsonData = request.body.asJson.get
+    val userid = (jsonData \ "userid").as[Long]
+    val groupnickname = (jsonData \ "groupnickname").as[String]
+    keywordResponseDao.getKeywordResponseList(userid,groupnickname).map{ keywordList =>
         Ok(successResponse(Json.obj("keywordList" -> Json.toJson(keywordList))))
     }
   }
@@ -34,8 +37,9 @@ class KeywordResponse @Inject()(
     val response = (jsonData \ "response").as[String]
     val triggertype = (jsonData \ "triggertype").as[Int]
     val userid = (jsonData \ "userid").as[Long]
-    val groupid = (jsonData \ "groupid").as[Long]
-    keywordResponseDao.createrKeywordResponse(keyword,restype,response,triggertype,userid,groupid).map{ res =>
+    val groupnickname = (jsonData \ "groupnickname").as[String]
+    val state = (jsonData \ "state").as[Int]
+    keywordResponseDao.createrKeywordResponse(keyword,restype,response,triggertype,userid,groupnickname,state).map{ res =>
       if(res > 0){
         Ok(success)
       }
@@ -53,8 +57,9 @@ class KeywordResponse @Inject()(
     val response = (jsonData \ "response").as[String]
     val triggertype = (jsonData \ "triggertype").as[Int]
     val userid = (jsonData \ "userid").as[Long]
-    val groupid = (jsonData \ "groupid").as[Long]
-    keywordResponseDao.changeKeywordResponseList(id,userid,keyword,restype,response,triggertype,groupid).map{ res =>
+    val groupnickname = (jsonData \ "groupnickname").as[String]
+    val state = (jsonData \ "state").as[Int]
+    keywordResponseDao.changeKeywordResponseList(id,userid,keyword,restype,response,triggertype,groupnickname,state).map{ res =>
       if(res > 0){
         Ok(success)
       }

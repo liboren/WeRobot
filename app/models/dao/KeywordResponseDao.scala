@@ -5,6 +5,7 @@ import models.tables.SlickTables
 import org.slf4j.LoggerFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.driver.JdbcProfile
+import common.Constants.Response._
 /**
   * User: liboren.
   * Date: 2017/4/14.
@@ -26,22 +27,24 @@ class KeywordResponseDao @Inject()(
   * @param response 文本内容或图片地址
   * @param triggertype 触发类型，1-精确匹配，0-模糊匹配
   * @param userid 用户id
-  * @param groupid 群组id
+  * @param groupnickname 群组昵称
+  * @param state 状态，0-关闭，1-开启
   * @return 新增的自增id
   * */
-  def createrKeywordResponse(keyword:String,restype:Int,response:String,triggertype:Int,userid:Long,groupid:Long) ={
-    db.run(tKeywordresponse.map(i => (i.keyword,i.restype,i.response,i.triggertype,i.userid,i.groupid)).returning(tKeywordresponse.map(_.id)) +=
-      (keyword,restype,response,triggertype,userid,groupid)
+  def createrKeywordResponse(keyword:String,restype:Int,response:String,triggertype:Int,userid:Long,groupnickname:String,state:Int) ={
+    db.run(tKeywordresponse.map(i => (i.keyword,i.restype,i.response,i.triggertype,i.userid,i.groupnickname,i.state)).returning(tKeywordresponse.map(_.id)) +=
+      (keyword,restype,response,triggertype,userid,groupnickname,state)
     ).mapTo[Long]
   }
 
   /**
     * 获取该用户的关键词回复列表
     * @param userid 用户id
+    * @param groupnickname 群组昵称
     * @return 该用户的关键词回复列表
     * */
-  def getKeywordResponseList(userid:Long) = db.run(
-    tKeywordresponse.filter(m => m.userid === userid).result
+  def getKeywordResponseList(userid:Long,groupnickname:String) = db.run(
+    tKeywordresponse.filter(m => m.userid === userid && m.groupnickname === groupnickname && m.state === STATE_OPEN).result
   )
 
   /**
@@ -52,12 +55,13 @@ class KeywordResponseDao @Inject()(
     * @param response 文本内容或图片地址
     * @param triggertype 触发类型，1-精确匹配，0-模糊匹配
     * @param userid 用户id
-    * @param groupid 群组id
+    * @param groupnickname 群组昵称
+    * @param state 状态，0-关闭，1-开启
     * @return 更新结果
     * */
-  def changeKeywordResponseList(id:Long,userid:Long,keyword:String,restype:Int,response:String,triggertype:Int,groupid:Long) = {
-    db.run(tKeywordresponse.filter( m => m.userid === userid && m.id === id).map(m => (m.keyword,m.restype,m.response,m.triggertype))
-      .update(keyword,restype,response,triggertype))
+  def changeKeywordResponseList(id:Long,userid:Long,keyword:String,restype:Int,response:String,triggertype:Int,groupnickname:String,state:Int) = {
+    db.run(tKeywordresponse.filter( m => m.userid === userid && m.id === id).map(m => (m.keyword,m.restype,m.response,m.triggertype,m.groupnickname,m.state))
+      .update(keyword,restype,response,triggertype,groupnickname,state))
   }
 
   /**

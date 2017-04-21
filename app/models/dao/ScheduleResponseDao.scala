@@ -5,6 +5,7 @@ import models.tables.SlickTables
 import org.slf4j.LoggerFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.driver.JdbcProfile
+import common.Constants.Response._
 /**
   * User: liboren.
   * Date: 2017/4/14.
@@ -53,7 +54,7 @@ class ScheduleResponseDao @Inject()(
     * @return 该用户的关键词回复列表
     * */
   def getScheduleResponseByTriggerTime(triggertime:Int) = db.run(
-    tScheduleresponse.filter(m => m.triggertime === triggertime && m.state === 1).result
+    tScheduleresponse.filter(m => m.triggertime === triggertime && m.state === STATE_OPEN).result
   )
 
   /**

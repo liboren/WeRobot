@@ -1,6 +1,7 @@
 package util
 import models.tables.SlickTables._
 import play.api.Logger
+import common.Constants.Response._
 /**
   * User: liboren.
   * Date: 2017/1/11.
@@ -42,16 +43,17 @@ object ReplyUtil{
 //    )
     keywordList.foreach { keywordInfo =>
       keywordInfo.triggertype match {
-        case 1 => // 精确匹配
+        case ACCURATE_MATCH => // 精确匹配
           if (keywordInfo.keyword == conReform) {
             return keywordInfo.response
           }
-        case 0 => // 模糊匹配
+        case VAGUE_MATCH => // 模糊匹配
           if (conReform.contains(keywordInfo.keyword)) {
             return keywordInfo.response
           }
         case _ =>
           log.error("关键词回复出错，错误原因：没有对应的triggertype for:" + keywordInfo.triggertype)
+          return null
       }
     }
 

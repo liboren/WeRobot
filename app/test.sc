@@ -2,3 +2,4 @@
 
 val str = "欢迎 @被邀请人 加入火箭队"
 val inviter = str.replaceAll("被邀请人","aaa")
+val pm = str.s

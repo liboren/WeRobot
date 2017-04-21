@@ -5,6 +5,7 @@ import models.tables.SlickTables
 import org.slf4j.LoggerFactory
 import play.api.db.slick.{DatabaseConfigProvider, HasDatabaseConfigProvider}
 import slick.driver.JdbcProfile
+import common.Constants.Response._
 /**
   * User: liboren.
   * Date: 2017/4/14.
@@ -42,7 +43,7 @@ class AutoResponseDao @Inject()(
     * @return 该用户的关键词回复列表
     * */
   def getAutoresponseByGroupNickName(userid:Long,groupnickname:String) = db.run(
-    tAutoresponse.filter(m => m.userid === userid && m.groupnickname === groupnickname && m.state === 1).result.headOption
+    tAutoresponse.filter(m => m.userid === userid && m.groupnickname === groupnickname && m.state === STATE_OPEN).result.headOption
   )
 
   /**
