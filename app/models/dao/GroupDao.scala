@@ -31,25 +31,25 @@ class GroupDao @Inject()(
     * @return 群的自增id
     * */
   def createrGroup(groupUnionId:String,groupNickName:String,headImgUrl:String,state:Int,ownerid:Long,memberCount:Int) ={
-    groupIsExist(groupNickName,ownerid,memberCount).flatMap{ exist =>
-      if(exist.isDefined){
-        deleteGroup(exist.get.groupid,exist.get.ownerid,memberCount).flatMap{ res =>
-          if(res > 0){
+//    groupIsExist(groupNickName,ownerid,memberCount).flatMap{ exist =>
+//      if(exist.isDefined){
+        deleteGroup(groupNickName,ownerid).flatMap{ res =>
+//          if(res > 0){
             db.run(tGroup.map(i => (i.groupunionid,i.groupnickname,i.headimgurl,i.state,i.ownerid,i.membercount)).returning(tGroup.map(_.groupid)) +=
               (groupUnionId,groupNickName,headImgUrl,state,ownerid,memberCount)
             ).mapTo[Long]
-          }
-          else{
-            Future.successful(-1L)
-          }
+//          }
+//          else{
+//            Future.successful(-1L)
+//          }
         }
-      }
-      else{
-        db.run(tGroup.map(i => (i.groupunionid,i.groupnickname,i.headimgurl,i.state,i.ownerid,i.membercount)).returning(tGroup.map(_.groupid)) +=
-          (groupUnionId,groupNickName,headImgUrl,state,ownerid,memberCount)
-        ).mapTo[Long]
-      }
-    }
+//      }
+//      else{
+//        db.run(tGroup.map(i => (i.groupunionid,i.groupnickname,i.headimgurl,i.state,i.ownerid,i.membercount)).returning(tGroup.map(_.groupid)) +=
+//          (groupUnionId,groupNickName,headImgUrl,state,ownerid,memberCount)
+//        ).mapTo[Long]
+//      }
+//    }
 
   }
 
@@ -65,12 +65,12 @@ class GroupDao @Inject()(
 
   /**
     * 删除群信息
-    * @param groupid 群id
+    * @param groupnickname 群昵称
     * @param userid 所属用户id
     * @return 删除结果
     * */
-  def deleteGroup(groupid:Long,userid:Long,memberCount:Int) = db.run(
-    tGroup.filter( m => m.groupid === groupid && m.ownerid === userid && m.membercount === memberCount).delete
+  def deleteGroup(groupnickname:String,userid:Long) = db.run(
+    tGroup.filter( m => m.groupnickname === groupnickname && m.ownerid === userid).delete
   )
 
   /**

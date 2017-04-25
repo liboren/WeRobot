@@ -1,6 +1,6 @@
 import sbt.Keys.libraryDependencies
 
-name := "WeChatBoot"
+name := "WeRobot"
 
 version := "1.0"
 

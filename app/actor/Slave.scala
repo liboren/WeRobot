@@ -334,8 +334,9 @@ class Slave @Inject() (userInfo: UserInfo,
               if (info.length > 1) {
                 val msg = info(1).replace(" ", "").trim() // 把@姓名 后面的特殊空格去掉并去掉首尾的空格
                 if (msg == "") {
-                  val response = "[疑问]"
-                  self ! SendMessage(response, userInfo.username, fromUserName)
+//                  val response = "[疑问]"
+//                  self ! SendMessage(response, userInfo.username, fromUserName)
+                  self ! SendEmotionMessage("1f98d5d1f74960172e7a8004b1054f5b", userInfo.username, fromUserName)
                 }
                 else {
                   //                    val response = Await.result(chatApi.chatWithRobot(msg, ""), 27.seconds)
@@ -350,6 +351,12 @@ class Slave @Inject() (userInfo: UserInfo,
               }
             }
             else {
+              if(content.contains("哈哈哈哈哈哈哈哈哈哈") && groupName.equals("盖世英雄")){
+                self ! SendEmotionMessage("4fe01247c319c06b9d4a12f9e939b114", userInfo.username, fromUserName)
+              }
+              if(content.contains("@不二法师") && groupName.equals("盖世英雄")){
+                self ! SendEmotionMessage("2ef2b73bf17b4a0921b14b1638601229", userInfo.username, fromUserName)
+              }
               //是否有满足关键词回复
               val keywordList = Await.result(keywordResponseDao.getKeywordResponseList(userInfo.userid,groupName), 10.second)
               val response = ReplyUtil.autoReply(content, keywordList)
@@ -370,14 +377,14 @@ class Slave @Inject() (userInfo: UserInfo,
             }
             else{
               if(content.contains("入群")){ // 触发入群关键字
-                val groupunionid = Await.result(groupDao.getGroupByName("火箭队",userInfo.userid),10.second).get.groupunionid
+                val groupunionid = Await.result(groupDao.getGroupByName("盖世英雄",userInfo.userid),10.second).get.groupunionid
                 self ! AddUserToGroup(fromUserName,groupunionid)
               }
               log.info(s"\r\n收到文本消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n内容【$content】")
             }
           case 3 => // 图片消息
             val msgId = (msg \ "MsgId").as[String]
-            val imgUrl = s"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetmsgimg?MsgID=$msgId&type=slave&skey=${userInfo.skey}"
+            val imgUrl = s"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetmsgimg?MsgID=$msgId&skey=${userInfo.skey}"
             log.info(s"\r\n收到图片消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n图片地址【$imgUrl】")
             httpUtil.getFileRequestSend("get emotion file",imgUrl,userInfo.cookie,List()).map{ res =>
               if(res.isDefined){
@@ -476,10 +483,12 @@ class Slave @Inject() (userInfo: UserInfo,
             log.info(s"\r\n收到系统消息(type:$msgType)，内容：【$content】来自:【$groupName】")
             //TODO 新人邀请 "FromUserName":"@@131473cf33f36c70ea5a95ce6c359a9e35f32c0ffbddf2e59e242f6a823ff2fa","ToUserName":"@fb6dce95633e13ca08e966a6f9a34e3c","MsgType":10000,"Content":"\" <span class=\"emoji emoji1f338\"></span>卷卷卷<span class=\"emoji emoji1f338\"></span>\"邀请\"Hou$e\"加入了群聊
             val groupNickName = Await.result(groupDao.getGroupByUnionId(fromUserName),10.second).get.groupnickname
-            if(groupNickName.equals("火箭队")) { //Todo 注释掉这里应用到全部群组中
+            if(groupNickName.equals("盖世英雄")) { //Todo 注释掉这里应用到全部群组中
               if (content.contains("加入了群聊")) {
-                val inviter = content.split("邀请\"")(0)
-                val invitee = content.split("邀请\"")(1).split("\"加入了群聊")(0)
+                val pattern = Pattern.compile("""(.*?)邀请\"(.*?)\"加入了群聊""")
+                val matcher = pattern.matcher(content)
+                val inviter = matcher.group(1)
+                val invitee = matcher.group(2)
                 autoResponseDao.getAutoresponseByGroupNickName(userInfo.userid,groupNickName).map{ responseOpt =>
                   if(responseOpt.isDefined){
                     log.info(s"$inviter 邀请 $invitee 加入了群聊")
@@ -488,10 +497,24 @@ class Slave @Inject() (userInfo: UserInfo,
                 }
               }
               else if (content.contains("移出了群聊")) {
-                val inviter = content.split("将\"")(0)
-                val invitee = content.split("将\"")(1).split("\"移出了群聊")(0)
+                val pattern = Pattern.compile("""(.*?)将\"(.*?)\"移出了群聊""")
+                val matcher = pattern.matcher(content)
+                val inviter = matcher.group(1)
+                val invitee = matcher.group(2)
                 log.info(s"$inviter 将 $invitee 移出了群聊")
                 self ! SendMessage(s"$invitee 被移出了群聊", toUserName, fromUserName)
+              }
+            }
+            if(content.contains("修改群名为")){
+              val pattern = Pattern.compile(""".*?修改群名为.*?“(.*?)”.*?""")
+              val matcher = pattern.matcher(content)
+              if(matcher.matches()) {
+                val newName = matcher.group(1)
+                groupDao.changeGroupNickName(fromUserName, newName).map{res =>
+                  if(res > 0){
+                    log.info(s"数据库更新群名称成功:群:$fromUserName 新名称:$newName")
+                  }
+                }
               }
             }
 
@@ -522,7 +545,8 @@ class Slave @Inject() (userInfo: UserInfo,
           "DeviceID" -> userInfo.deviceId
         ),
         "Msg" -> Json.obj(
-          "Type" -> "3",
+          "Type" -> 3,
+          "Content" -> "",
           "MediaId" -> mediaid, //要发送的消息
           "FromUserName" -> from, //自己ID
           "ToUserName" -> to, //好友ID
@@ -557,8 +581,7 @@ class Slave @Inject() (userInfo: UserInfo,
       val curTime = System.currentTimeMillis()
       val LocalID = curTime + SecureUtil.nonceDigit(4)
       val params = List(
-        "fun" -> "async",
-        "f" -> "json",
+        "fun" -> "sys",
         "pass_ticket" -> userInfo.pass_ticket
       )
       val postData = Json.obj(
@@ -569,9 +592,8 @@ class Slave @Inject() (userInfo: UserInfo,
           "DeviceID" -> userInfo.deviceId
         ),
         "Msg" -> Json.obj(
-          "Type" -> "47",
-          "EmojiFlag" -> "2",
-          "MediaId" -> mediaid, //发送表情，可是是表情的MD5或者uploadMedia返回的mediaId
+          "Type" -> 47,
+          "EMoticonMd5" -> mediaid, //发送表情，可是是表情的MD5或者uploadMedia返回的mediaId
           "FromUserName" -> from, //自己ID
           "ToUserName" -> to, //好友ID
           "LocalID" -> LocalID, //与ClientMsgId相同
@@ -844,7 +866,7 @@ class Slave @Inject() (userInfo: UserInfo,
             }
             else{
               log.info(s"retcode:$retcode -> SyncHost（${userInfo.syncHost}）失效,更换新host")
-              userInfo.syncHost = "webpush2."
+//              userInfo.syncHost = "webpush2."
               self ! SyncCheck()
             }
           } catch {
