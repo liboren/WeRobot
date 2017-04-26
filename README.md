@@ -1,6 +1,6 @@
 # WeRobot
 个人爱好，微信机器人测试版
-WeRobot 是用Scala编写实现的微信群管理系统。
+WeRobot 是用Scala编写实现的微信群管理系统。使用到了Akka，Slick等技术，框架用的Play!
 
 目前正在开发中。。。。
 
