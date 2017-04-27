@@ -34,7 +34,7 @@ class MemberDao @Inject()(
     ).mapTo[Long]
   }
   def batchCreaterMember(infoSeq:Seq[(String,String,String,Long)]) ={
-    db.run(tGroupuser.map(i => (i.userunionid,i.usernickname,i.userdisplayname,i.groupid)).forceInsertAll(infoSeq))
+    db.run(tGroupuser.map(i => (i.userunionid,i.usernickname,i.userdisplayname,i.groupid)).forceInsertAll(infoSeq).transactionally)
   }
 
   /**

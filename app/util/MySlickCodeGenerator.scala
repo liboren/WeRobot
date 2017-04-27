@@ -17,7 +17,7 @@ object MySlickCodeGenerator {
 
   val slickDriver = "slick.driver.MySQLDriver"
   val jdbcDriver = "com.mysql.jdbc.Driver"
-  val url = "jdbc:mysql://localhost:3306/wechatboot?useUnicode=true&characterEncoding=utf-8"
+  val url = "jdbc:mysql://localhost:3306/werobot?useUnicode=true&characterEncoding=utf-8"
   val outputFolder = "target/gencode/genTables"
   val pkg = "models.tables"
   val user = "root"

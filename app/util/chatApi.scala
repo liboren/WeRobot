@@ -92,4 +92,28 @@ class chatApi @Inject()(
       }
     }
   }
+  def chatWithTulingAPI(info:String,userid:String) = {
+
+    log.info("chatWithTulingAPI")
+    val baseUrl = s"http://www.tuling123.com/openapi/api"
+
+    val postData = Json.obj(
+      "info" -> info,
+      "userid" -> userid,
+      "key" -> "0f9e5b979ff05e0e7ee451712854dcf6"
+    )
+
+    httpUtil.postJsonRequestSend("chatWithTulingAPI", baseUrl,List(),postData,null).map { js =>
+      log.info("chatWithTulingAPI res :" + js)
+      try {
+        val text = (js \ "text").as[String]
+        text
+
+      }catch {
+        case ex: Throwable =>
+          log.error(s"error:" + js + s"ex: $ex")
+          null
+      }
+    }
+  }
 }

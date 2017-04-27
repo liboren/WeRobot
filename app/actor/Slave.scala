@@ -2,16 +2,16 @@ package actor
 
 
 import java.io.File
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{Callable, ConcurrentHashMap}
 import java.util.regex.Pattern
 import javax.inject.Inject
 
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, Cancellable, Props}
 import models.dao._
 import play.api.Logger
 import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsObject, JsValue, Json}
-import util.{HttpUtil, ReplyUtil, SecureUtil}
+import util.{HttpUtil, ReplyUtil, SecureUtil, chatApi}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Await, Future}
@@ -20,6 +20,7 @@ import scala.collection.mutable
 import scala.collection.JavaConversions._
 import scala.util.Random
 import common.Constants.FilePath._
+import util.TimeFormatUtil.howLongToNextMinute
 
 /**
   * Created by Macbook on 2017/4/13.
@@ -29,15 +30,17 @@ object Slave{
 
   def props(userInfo: UserInfo,
             httpUtil: HttpUtil,
+            chatApi:chatApi,
             keywordResponseDao:KeywordResponseDao,
             memberDao: MemberDao,
             autoResponseDao: AutoResponseDao,
             groupDao: GroupDao,
-            userCookieDao: UserCookieDao) = Props(new Slave(userInfo,httpUtil,keywordResponseDao,memberDao,autoResponseDao,groupDao,userCookieDao))
+            userCookieDao: UserCookieDao) = Props(new Slave(userInfo,httpUtil,chatApi,keywordResponseDao,memberDao,autoResponseDao,groupDao,userCookieDao))
 }
 
 class Slave @Inject() (userInfo: UserInfo,
                        httpUtil: HttpUtil,
+                       chatApi:chatApi,
                        keywordResponseDao:KeywordResponseDao,
                        memberDao: MemberDao,
                        autoResponseDao: AutoResponseDao,
@@ -51,6 +54,13 @@ class Slave @Inject() (userInfo: UserInfo,
   val groupMap = new scala.collection.mutable.HashMap[String, scala.collection.mutable.HashMap[String, String]]()
   val memberMap = new scala.collection.mutable.HashMap[String, String]()
 
+  val withdrawMap = new scala.collection.mutable.HashMap[String, String]()//撤回表[msgid,text]
+  val dropMap = new scala.collection.mutable.HashMap[String, Cancellable]()//踢人表[username,cancelable]
+//  val dropMap = new java.util.HashMap[String,Cancellable](64)
+
+
+//  val debugGroupName = "嘿嘿嘿" //测试用群组名称，同时要修改数据库相应字段
+  var debugGroupName = "盖世英雄"
 
   @throws[Exception](classOf[Exception])
   override def preStart(): Unit = {
@@ -320,6 +330,7 @@ class Slave @Inject() (userInfo: UserInfo,
           val ret = (js \ "BaseResponse" \ "Ret").as[Int]
           if(ret == 0){
             log.info(s"踢出群成员成功:\r\n群:$groupunionid \r\n成员:$userunionid \r\n")
+            self ! AddUserToGroup(userunionid,groupunionid)
           }
           else{
             val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
@@ -351,7 +362,7 @@ class Slave @Inject() (userInfo: UserInfo,
         case e: Exception =>
           log.error("GetImg with EXCEPTION：" + e.getMessage)
       }
-    case HandleMsg(fromUserName,toUserName,msgType,msg) => // 处理消息细节
+    case HandleMsg(fromUserName,toUserName,msgType,msgid,msg) => // 处理消息细节
       val content = (msg \ "Content").as[String]
 
       val memName = content.split(":<br/>")(0)
@@ -369,82 +380,77 @@ class Slave @Inject() (userInfo: UserInfo,
       log.info(s"收到新消息【$msg】")
         msgType match {
           case 1 => // 文本消息
-            if (content.contains("@李暴龙")) { //是否开启自动聊天
-              val info = content.split("@李暴龙")
+            if(fromUserName.startsWith("@@")) {//群消息
+              val text = content.split(":<br/>")(1)
+              if(groupName.equals(debugGroupName)) {//Todo 去掉将应用到所有群中
+                withdrawMap.put(msgid,text)
+                if (content.contains("@李暴龙")) { //是否被@
+                  val info = content.split("@李暴龙")
+                  if (info.length > 1) {
+                    val msg = info(1).replace(" ", "").trim() // 把@姓名 后面的特殊空格去掉并去掉首尾的空格
+                    if (msg == "") {
+                      //                  val response = "[疑问]"
+                      self ! SendEmotionMessage("1f98d5d1f74960172e7a8004b1054f5b", userInfo.username, fromUserName)
+                    }
+                    else{
+                      chatApi.chatWithTulingAPI(msg,memName).map{ restext =>
+                        self ! SendMessage(restext,userInfo.username,fromUserName)
+                      }
+                    }
+                  }
+                }
+                if (content.contains("代码")) {
+                  self ! SendMessage("微信机器人源代码： https://github.com/liboren/WeRobot", userInfo.username, fromUserName)
+                }
+                if (content.contains("哈哈哈哈哈哈哈哈哈哈")) {
+                  self ! SendEmotionMessage("4fe01247c319c06b9d4a12f9e939b114", userInfo.username, fromUserName)
+                }
+                if (content.contains("@不二法师")) {
+                  self ! SendEmotionMessage("2ef2b73bf17b4a0921b14b1638601229", userInfo.username, fromUserName)
+                }
+                if (content.contains("表情包")) {
+                  val md5Array = Array("4e616a3846f7a024f205aa1eec62a013", "a98b89ef417633faf4ec9a6ea83fa14b", "e7c66b8d1f7c5d0e60aa87598e5b6494", "4243d122e3012670737dc4f38f62d258", "39d6af92d931fc896f567d2e176aa0c9", "1f98d5d1f74960172e7a8004b1054f5b", "4fe01247c319c06b9d4a12f9e939b114", "45b6be19fa269d0f3bdb14eabd471c03", "e4a9c45361a5937a81e74c67cab730d6", "89ac958b76d94744c956bdf842649a84", "0e13847b3fc38355f9c5470e5ff096a1", "058e5518b78b5abf27f39b8984b4ad15", "0b7f628668f1813a0c121280a0658482","b6bbbefa0dc8346a6a685a3a08b6e66b", "64dc29f92b79a2a5a60c16bf53e3d778", "bb0a2f038b118c59ee08199c2128c6b7", "084108f4a5c274a27495cf2ab78e11fa", "32505b2f7ea0a706f69a27e7babdeaa3", "7487ee11f4d30b095dfc22d4632e6103", "7813a9690695336948a2c487f9dd9c26", "195ac634c58f3b5a6f9a97f7725a3033", "f57eeb863d02119228b2b0943914079e", "d7008cb35b5bfae5d7888a523cf789c2", "0740b555f583be4cb29ae1e1707bc419", "0d204cad49db4b6a194b1de779e401f0"
+                  )
+                  val random = Random.nextInt(25)
+                  self ! SendEmotionMessage(md5Array(random), userInfo.username, fromUserName)
+                }
 
-              if (info.length > 1) {
-                val msg = info(1).replace(" ", "").trim() // 把@姓名 后面的特殊空格去掉并去掉首尾的空格
-                if (msg == "") {
-//                  val response = "[疑问]"
-//                  self ! SendMessage(response, userInfo.username, fromUserName)
-                  self ! SendEmotionMessage("1f98d5d1f74960172e7a8004b1054f5b", userInfo.username, fromUserName)
+                if(text.contains("退群")){ // 触发退群关键字
+                  val random = Random.nextInt(60)
+                  self ! SendMessage(s"@$memberName ${random}s 退群倒计时开始",userInfo.username,fromUserName)
+                  val schedule  =context.system.scheduler.scheduleOnce(random.second,self,DeleteUserFromGroup(memName,fromUserName))//延迟random秒后踢人
+                  dropMap.put(memberName,schedule)
+//                  self ! DeleteUserFromGroup(memName,fromUserName)
+//                  self ! AddUserToGroup(fromUserName,groupunionid)
+                }
+                if(text.contains("我错了") || text.contains("对不起")){
+                  val res = dropMap.get(memberName)
+                  if(res.isDefined) {
+                    res.get.cancel()
+                    dropMap.remove(memberName)
+                    self ! SendMessage(s"@$memberName 退群倒计时停止", userInfo.username, fromUserName)
+                  }
+//                  else{
+//                    self ! SendMessage(s"@$memberName 没关系[愉快]", userInfo.username, fromUserName)
+//                  }
+                }
+                if(text.startsWith("改名")){
+                  val newName = text.substring(3,text.length)
+                  self ! SetGroupName(fromUserName,newName)
                 }
               }
-            }
-            else {
-              if(content.contains("代码") && groupName.equals("盖世英雄")){
-                self ! SendMessage("微信机器人源代码： https://github.com/liboren/WeRobot", userInfo.username, fromUserName)
-              }
-              if(content.contains("哈哈哈哈哈哈哈哈哈哈") && groupName.equals("盖世英雄")){
-                self ! SendEmotionMessage("4fe01247c319c06b9d4a12f9e939b114", userInfo.username, fromUserName)
-              }
-              if(content.contains("@不二法师") && groupName.equals("盖世英雄")){
-                self ! SendEmotionMessage("2ef2b73bf17b4a0921b14b1638601229", userInfo.username, fromUserName)
-              }
-              if(content.contains("表情包") && groupName.equals("盖世英雄")){
-
-                val md5Array = Array("4e616a3846f7a024f205aa1eec62a013",
-                  "a98b89ef417633faf4ec9a6ea83fa14b",
-                  "e7c66b8d1f7c5d0e60aa87598e5b6494",
-                  "4243d122e3012670737dc4f38f62d258",
-                  "39d6af92d931fc896f567d2e176aa0c9",
-                  "1f98d5d1f74960172e7a8004b1054f5b",
-                  "4fe01247c319c06b9d4a12f9e939b114",
-                  "45b6be19fa269d0f3bdb14eabd471c03",
-                  "e4a9c45361a5937a81e74c67cab730d6",
-                  "89ac958b76d94744c956bdf842649a84",
-                  "0e13847b3fc38355f9c5470e5ff096a1",
-                  "058e5518b78b5abf27f39b8984b4ad15",
-                  "0b7f628668f1813a0c121280a0658482",
-                  "b6bbbefa0dc8346a6a685a3a08b6e66b",
-                  "64dc29f92b79a2a5a60c16bf53e3d778",
-                  "bb0a2f038b118c59ee08199c2128c6b7",
-                  "084108f4a5c274a27495cf2ab78e11fa",
-                  "7487ee11f4d30b095dfc22d4632e6103",
-                  "7813a9690695336948a2c487f9dd9c26",
-                  "195ac634c58f3b5a6f9a97f7725a3033",
-                  "f57eeb863d02119228b2b0943914079e",
-                  "d7008cb35b5bfae5d7888a523cf789c2",
-                  "0740b555f583be4cb29ae1e1707bc419",
-                  "0d204cad49db4b6a194b1de779e401f0"
-
-                )
-                val random = Random.nextInt(24)
-                self ! SendEmotionMessage(md5Array(random), userInfo.username, fromUserName)
-
-              }
-
-              //是否有满足关键词回复
-              val keywordList = Await.result(keywordResponseDao.getKeywordResponseList(userInfo.userid,groupName), 10.second)
-              val response = ReplyUtil.autoReply(content, keywordList)
-              if (response != null) {
-                self ! SendMessage(response, toUserName, fromUserName)
-              }
-            }
-            if(fromUserName.startsWith("@@")) {
-              val text = content.split(":<br/>")(1)
-              if(text.contains("退群")){ // 触发退群关键字
-                self ! DeleteUserFromGroup(memName,fromUserName)
-              }
-              if(text.startsWith("改名")){
-                val newName = text.substring(3,text.length)
-                self ! SetGroupName(fromUserName,newName)
-              }
+                //是否有满足关键词回复
+                //              val keywordList = Await.result(keywordResponseDao.getKeywordResponseList(userInfo.userid,groupName), 10.second)
+                //              val response = ReplyUtil.autoReply(content, keywordList)
+                //              if (response != null) {
+                //                self ! SendMessage(response, toUserName, fromUserName)
+                //              }
               log.info(s"\r\n收到文本消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n内容【$text】")
             }
-            else{
-              if(content.contains("入群")){ // 触发入群关键字
-                val groupunionid = Await.result(groupDao.getGroupByName("盖世英雄",userInfo.userid),10.second).get.groupunionid
+            else{//非群消息
+              if(content.contains("xuomie")){ // 触发入群关键字
+                val groupunionid = Await.result(groupDao.getGroupByName(debugGroupName,userInfo.userid),10.second).get.groupunionid
+                log.info("收到入群请求fromUserName:"+fromUserName)
                 self ! AddUserToGroup(fromUserName,groupunionid)
               }
               log.info(s"\r\n收到文本消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n内容【$content】")
@@ -535,14 +541,13 @@ class Slave @Inject() (userInfo: UserInfo,
           case 10000 => // 系统消息
             log.info(s"\r\n收到系统消息(type:$msgType)，内容：【$content】来自:【$groupName】")
             //TODO 新人邀请 "FromUserName":"@@131473cf33f36c70ea5a95ce6c359a9e35f32c0ffbddf2e59e242f6a823ff2fa","ToUserName":"@fb6dce95633e13ca08e966a6f9a34e3c","MsgType":10000,"Content":"\" <span class=\"emoji emoji1f338\"></span>卷卷卷<span class=\"emoji emoji1f338\"></span>\"邀请\"Hou$e\"加入了群聊
-            val groupNickName = Await.result(groupDao.getGroupByUnionId(fromUserName),10.second).get.groupnickname
-            if(groupNickName.equals("盖世英雄")) { //Todo 注释掉这里应用到全部群组中
+            if(groupName.equals(debugGroupName)) { //Todo 注释掉这里应用到全部群组中
               if (content.contains("加入了群聊")) {
                 val pattern = Pattern.compile("""(.*?)邀请\"(.*?)\"加入了群聊""")
                 val matcher = pattern.matcher(content)
                 val inviter = matcher.group(1)
                 val invitee = matcher.group(2)
-                autoResponseDao.getAutoresponseByGroupNickName(userInfo.userid,groupNickName).map{ responseOpt =>
+                autoResponseDao.getAutoresponseByGroupNickName(userInfo.userid,groupName).map{ responseOpt =>
                   if(responseOpt.isDefined){
                     log.info(s"$inviter 邀请 $invitee 加入了群聊")
                     self ! SendMessage(responseOpt.get.response.replaceAll("@被邀请人",s"@$invitee "), toUserName, fromUserName)
@@ -557,22 +562,32 @@ class Slave @Inject() (userInfo: UserInfo,
                 log.info(s"$inviter 将 $invitee 移出了群聊")
                 self ! SendMessage(s"$invitee 被移出了群聊", toUserName, fromUserName)
               }
-            }
-            if(content.contains("修改群名为")){
-              val pattern = Pattern.compile(""".*?修改群名为.*?“(.*?)”.*?""")
-              val matcher = pattern.matcher(content)
-              if(matcher.matches()) {
-                val newName = matcher.group(1)
-                groupDao.changeGroupNickName(fromUserName, newName).map{res =>
-                  if(res > 0){
-                    log.info(s"数据库更新群名称成功:群:$fromUserName 新名称:$newName")
+              else if(content.contains("修改群名为")){
+                val pattern = Pattern.compile(""".*?修改群名为.*?“(.*?)”.*?""")
+                val matcher = pattern.matcher(content)
+                if(matcher.matches()) {
+                  val newName = matcher.group(1)
+                  groupDao.changeGroupNickName(fromUserName, newName).map{res =>
+                    if(res > 0){
+                      log.info(s"数据库更新群名称成功:群:$fromUserName 新名称:$newName")
+                      debugGroupName = newName
+                    }
                   }
                 }
               }
             }
-
           case 10002 => // 撤回消息
             log.info(s"\r\n【$groupName】撤回了一条消息(type:$msgType)，内容：【$content】")
+            val chehuiUserName = content.split(":<br/>")(0)
+            //Todo 找到撤回的内容
+            val pattern = Pattern.compile(""".*?/oldmsgid&gt;&lt;msgid&gt;(\d*).*?撤回了一条消息.*?""")
+            val matcher = pattern.matcher(content)
+            val boolean = matcher.matches()
+            val withdrawId = matcher.group(1)//撤回的消息id
+
+            if(withdrawMap.get(withdrawId).isDefined) {
+              self ! SendMessage(s"$memberName 撤回了一条消息，内容:[${withdrawMap(withdrawId)}]", userInfo.username, fromUserName)
+            }
           case _ => // 其他消息
 
         }
@@ -737,8 +752,8 @@ class Slave @Inject() (userInfo: UserInfo,
           val toUserName = (msg \ "ToUserName").as[String]
           val msgType = (msg \ "MsgType").as[Int]
           val content = (msg \ "Content").as[String]
-
-          self ! HandleMsg(fromUserName,toUserName,msgType,msg)
+          val msgid = (msg \ "MsgId").as[String]
+          self ! HandleMsg(fromUserName,toUserName,msgType,msgid,msg)
           //TODO 统计群成员的消息，记录活跃状态,content构成[@sjkahdjkajsdjksd:<br/>msg][用户id:<br/>消息]
         }
       }
@@ -1004,13 +1019,16 @@ class Slave @Inject() (userInfo: UserInfo,
                       val memUserName = (members \ "UserName").as[String]
                       val memNickName = (members \ "NickName").as[String]
                       val memDisplayName = (members \ "DisplayName").as[String]
-                      val memImg = (members \ "HeadImgUrl").asOpt[String].getOrElse("")
 
                       //数据库新增成员信息
                       (memUserName,memNickName,memDisplayName,groupid)
                     }
-                    memberDao.batchCreaterMember(seqInfo)  //批量插入成员数据
-//                    memberDao.createrMember(memUserName, memNickName, memDisplayName, groupid)
+                    memberDao.batchCreaterMember(seqInfo).map{ res =>  //批量插入成员数据
+                      log.debug(groupNickName+"("+memberCount+")" + " :" + res)
+                    }.onFailure{
+                      case ex :Exception => //🍭😈糖糖😈💬
+                      log.debug(groupNickName+"("+memberCount+")" + " :插入数据库失败"+ex + seqInfo )
+                    }
                   }
                 }
 //              }

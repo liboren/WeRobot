@@ -8,7 +8,7 @@ import common.Constants.WeixinAPI
 import models.dao._
 import play.api.Logger
 import play.api.libs.json.Json
-import util.HttpUtil
+import util.{HttpUtil, chatApi}
 import util.TimeFormatUtil._
 
 import scala.concurrent.Await
@@ -24,6 +24,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 @Singleton
 class Master @Inject()(httpUtil: HttpUtil,
                        keywordResponseDao: KeywordResponseDao,
+                       chatApi:chatApi,
                        memberDao: MemberDao,
                        groupDao: GroupDao,
                        autoResponseDao: AutoResponseDao,
@@ -66,7 +67,7 @@ class Master @Inject()(httpUtil: HttpUtil,
         context.child("slave"+userInfo.userid).get ! BeginInit()
       }
       else {
-        val slave = context.actorOf(Slave.props(userInfo, httpUtil, keywordResponseDao, memberDao,autoResponseDao, groupDao,userCookieDao), "slave" + userInfo.userid)
+        val slave = context.actorOf(Slave.props(userInfo, httpUtil,chatApi, keywordResponseDao, memberDao,autoResponseDao, groupDao,userCookieDao), "slave" + userInfo.userid)
         context.watch(slave)
         slave ! BeginInit() // Todo
         self ! CreateSchedule(userInfo,slave)
