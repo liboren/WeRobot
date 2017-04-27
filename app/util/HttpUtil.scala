@@ -48,12 +48,14 @@ class HttpUtil @Inject()(
   def getJsonRequestSend(
                           methodName: String,
                           url: String,
-                          parameters: List[(String, String)]) = {
+                          parameters: List[(String, String)],
+                          cookie:String) = {
 //    log.info("Get Request [" + methodName + "] Processing...")
     log.debug(methodName + " url=" + url)
     log.debug(methodName + " parameters=" + parameters)
     val futureResult = ws.
       url(url).
+      withHeaders(("Cookie",cookie)).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(10, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
@@ -293,7 +295,7 @@ class HttpUtil @Inject()(
                           methodName: String,
                           url: String,
                           cookies:String,
-                          parameters: List[(String, String)],name:String = null) = {
+                          parameters: List[(String, String)],name:String = null,path:String) = {
     log.info("Get Request [" + methodName + "] Processing...")
     log.debug(methodName + " url=" + url)
     log.debug(methodName + " parameters=" + parameters)
@@ -319,7 +321,7 @@ class HttpUtil @Inject()(
         else
           "jpeg"
       val fileName = if(name == null)cur.toString + "." + fileType else name + "." + fileType
-      val dirPath = if(name == null) IMG_PATH else EMOTION_PATH
+      val dirPath = path
       val dir = new File(dirPath)
       if(!dir.exists()) dir.mkdir()
       val outputStream = new FileOutputStream(dirPath+fileName)

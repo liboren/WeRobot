@@ -7,7 +7,7 @@ import java.util.regex.Pattern
 import javax.inject.Inject
 
 import akka.actor.{Actor, Props}
-import models.dao.{AutoResponseDao, GroupDao, KeywordResponseDao, MemberDao}
+import models.dao._
 import play.api.Logger
 import play.api.libs.concurrent.Akka
 import play.api.libs.json.{JsObject, JsValue, Json}
@@ -18,6 +18,8 @@ import scala.concurrent.{Await, Future}
 import concurrent.duration._
 import scala.collection.mutable
 import scala.collection.JavaConversions._
+import scala.util.Random
+import common.Constants.FilePath._
 
 /**
   * Created by Macbook on 2017/4/13.
@@ -30,7 +32,8 @@ object Slave{
             keywordResponseDao:KeywordResponseDao,
             memberDao: MemberDao,
             autoResponseDao: AutoResponseDao,
-            groupDao: GroupDao) = Props(new Slave(userInfo,httpUtil,keywordResponseDao,memberDao,autoResponseDao,groupDao))
+            groupDao: GroupDao,
+            userCookieDao: UserCookieDao) = Props(new Slave(userInfo,httpUtil,keywordResponseDao,memberDao,autoResponseDao,groupDao,userCookieDao))
 }
 
 class Slave @Inject() (userInfo: UserInfo,
@@ -38,7 +41,8 @@ class Slave @Inject() (userInfo: UserInfo,
                        keywordResponseDao:KeywordResponseDao,
                        memberDao: MemberDao,
                        autoResponseDao: AutoResponseDao,
-                       groupDao: GroupDao)  extends Actor with ActorProtocol {
+                       groupDao: GroupDao,
+                       userCookieDao: UserCookieDao)  extends Actor with ActorProtocol {
 
   private final val log = Logger(this.getClass)
   log.debug("------------------  Slave created")
@@ -152,6 +156,29 @@ class Slave @Inject() (userInfo: UserInfo,
 //  }
 
   override def receive: Receive = {
+    case LogOut() =>
+      val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxlogout"
+      val cookies = userInfo.cookie
+
+      val params = List(
+        "redirect" -> "1",
+        "type" -> "0",
+        "skey" -> userInfo.skey,
+        "sid" -> userInfo.wxsid,
+        "uin" -> userInfo.wxuin
+      )
+      httpUtil.getJsonRequestSend("add user to group", baseUrl, params,cookies).map { js =>
+        try {
+          log.info("System logout :"+js)
+        } catch {
+          case ex: Throwable =>
+            ex.printStackTrace()
+            log.error(s"error:" + js + s"ex: $ex")
+        }
+      }.onFailure {
+        case e: Exception =>
+          log.error("add user to group with EXCEPTION：" + e.getMessage)
+      }
     case SetGroupName(groupunionid,name) => //设置群聊名称
       val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxupdatechatroom"
       val cookies = userInfo.cookie
@@ -312,6 +339,18 @@ class Slave @Inject() (userInfo: UserInfo,
 //      schedule.cancel()
       log.info("开始准备与微信建立链接")
       self ! GetTicketAndKey()
+    case GetImg(imgUrl,path,name) => // 获取群聊图片或表情
+      httpUtil.getFileRequestSend("get emotion file",imgUrl,userInfo.cookie,List(),name,path).map{ res =>
+        if(res.isDefined){
+          log.debug(s"下载文件[$imgUrl]成功,文件名：${res.get}")
+        }
+        else{
+          log.debug(s"下载文件[$imgUrl]失败")
+        }
+      }.onFailure {
+        case e: Exception =>
+          log.error("GetImg with EXCEPTION：" + e.getMessage)
+      }
     case HandleMsg(fromUserName,toUserName,msgType,msg) => // 处理消息细节
       val content = (msg \ "Content").as[String]
 
@@ -321,10 +360,12 @@ class Slave @Inject() (userInfo: UserInfo,
       val memberInfo = Await.result(memberDao.getMemberByUnionId(memName),10.second)
       var groupName = "未知"
       var memberName = "未知" //
-      if(groupInfo.isDefined && memberInfo.isDefined) {
+      if(groupInfo.isDefined) {
         groupName = groupInfo.get.groupnickname
-        memberName = if (memberInfo.get.userdisplayname.equals("")) memberInfo.get.usernickname else memberInfo.get.userdisplayname
       }//@3289701fdde4ad3656abb401ba33c78e @3289701fdde4ad3656abb401ba33c78e
+      if(memberInfo.isDefined) {
+        memberName = if (memberInfo.get.userdisplayname.equals("")) memberInfo.get.usernickname else memberInfo.get.userdisplayname
+      }
       log.info(s"收到新消息【$msg】")
         msgType match {
           case 1 => // 文本消息
@@ -338,25 +379,51 @@ class Slave @Inject() (userInfo: UserInfo,
 //                  self ! SendMessage(response, userInfo.username, fromUserName)
                   self ! SendEmotionMessage("1f98d5d1f74960172e7a8004b1054f5b", userInfo.username, fromUserName)
                 }
-                else {
-                  //                    val response = Await.result(chatApi.chatWithRobot(msg, ""), 27.seconds)
-                  val response = null
-                  if (response == null) {
-                  }
-                  else {
-                    //                      Await.result(sendMessage(passTicket, uin, sid, skey, deviceId, username, formUserName, response, cookies), 27.seconds)
-                    self ! SendMessage(response, userInfo.username, fromUserName)
-                  }
-                }
               }
             }
             else {
+              if(content.contains("代码") && groupName.equals("盖世英雄")){
+                self ! SendMessage("微信机器人源代码： https://github.com/liboren/WeRobot", userInfo.username, fromUserName)
+              }
               if(content.contains("哈哈哈哈哈哈哈哈哈哈") && groupName.equals("盖世英雄")){
                 self ! SendEmotionMessage("4fe01247c319c06b9d4a12f9e939b114", userInfo.username, fromUserName)
               }
               if(content.contains("@不二法师") && groupName.equals("盖世英雄")){
                 self ! SendEmotionMessage("2ef2b73bf17b4a0921b14b1638601229", userInfo.username, fromUserName)
               }
+              if(content.contains("表情包") && groupName.equals("盖世英雄")){
+
+                val md5Array = Array("4e616a3846f7a024f205aa1eec62a013",
+                  "a98b89ef417633faf4ec9a6ea83fa14b",
+                  "e7c66b8d1f7c5d0e60aa87598e5b6494",
+                  "4243d122e3012670737dc4f38f62d258",
+                  "39d6af92d931fc896f567d2e176aa0c9",
+                  "1f98d5d1f74960172e7a8004b1054f5b",
+                  "4fe01247c319c06b9d4a12f9e939b114",
+                  "45b6be19fa269d0f3bdb14eabd471c03",
+                  "e4a9c45361a5937a81e74c67cab730d6",
+                  "89ac958b76d94744c956bdf842649a84",
+                  "0e13847b3fc38355f9c5470e5ff096a1",
+                  "058e5518b78b5abf27f39b8984b4ad15",
+                  "0b7f628668f1813a0c121280a0658482",
+                  "b6bbbefa0dc8346a6a685a3a08b6e66b",
+                  "64dc29f92b79a2a5a60c16bf53e3d778",
+                  "bb0a2f038b118c59ee08199c2128c6b7",
+                  "084108f4a5c274a27495cf2ab78e11fa",
+                  "7487ee11f4d30b095dfc22d4632e6103",
+                  "7813a9690695336948a2c487f9dd9c26",
+                  "195ac634c58f3b5a6f9a97f7725a3033",
+                  "f57eeb863d02119228b2b0943914079e",
+                  "d7008cb35b5bfae5d7888a523cf789c2",
+                  "0740b555f583be4cb29ae1e1707bc419",
+                  "0d204cad49db4b6a194b1de779e401f0"
+
+                )
+                val random = Random.nextInt(24)
+                self ! SendEmotionMessage(md5Array(random), userInfo.username, fromUserName)
+
+              }
+
               //是否有满足关键词回复
               val keywordList = Await.result(keywordResponseDao.getKeywordResponseList(userInfo.userid,groupName), 10.second)
               val response = ReplyUtil.autoReply(content, keywordList)
@@ -386,14 +453,7 @@ class Slave @Inject() (userInfo: UserInfo,
             val msgId = (msg \ "MsgId").as[String]
             val imgUrl = s"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetmsgimg?MsgID=$msgId&skey=${userInfo.skey}"
             log.info(s"\r\n收到图片消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n图片地址【$imgUrl】")
-            httpUtil.getFileRequestSend("get emotion file",imgUrl,userInfo.cookie,List()).map{ res =>
-              if(res.isDefined){
-                log.debug(s"下载文件[$imgUrl]成功,文件名：${res.get}")
-              }
-              else{
-                log.debug(s"下载文件[$imgUrl]失败")
-              }
-            }
+            self ! GetImg(imgUrl,IMG_PATH,null)
           //如果是图片消息，通过MsgId字段获取msgid，然后调用以下接口获取图片，type字段为空为大图，否则是缩略图
           //https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetmsgimg?MsgID=4880689959463718121&type=slave&skey=@crypt_f6c3cb1f_8b158d6e5d7df945580d590bd7612083
           case 34 => // 语音消息
@@ -422,14 +482,7 @@ class Slave @Inject() (userInfo: UserInfo,
                 val md5 = matcher.group(1)
                 val cdnurl = matcher.group(2)
                 log.info(s"\r\n收到动画表情(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】表情地址【$cdnurl】MD5【$md5】")
-                httpUtil.getFileRequestSend("get emotion file",cdnurl,userInfo.cookie,List(),md5).map{ res =>
-                  if(res.isDefined){
-                    log.debug(s"下载文件[$cdnurl]成功,文件名：${res.get}")
-                  }
-                  else{
-                    log.debug(s"下载文件[$cdnurl]失败")
-                  }
-                }
+                self ! GetImg(cdnurl,EMOTION_PATH,md5)
               }
             }
           // content字段里除了发送人id，还会有一个cdnurl字段，里面是动画表情的地址
@@ -726,14 +779,21 @@ class Slave @Inject() (userInfo: UserInfo,
             val synckey = createSyncKey(Synckey)
             userInfo.SyncKey = Synckey
             userInfo.synckey = synckey
-            if(addMsgList.nonEmpty)
+            if(addMsgCount != 0) {
               self ! ProcessNewMessage(addMsgList)
+              self ! SyncCheck()
+            }
+            else{
+              Thread.sleep(1000)
+              self ! SyncCheck()
+            }
           }
           else {
             val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
             log.error(s"获取新消息失败，原因:ret:$ret errmsg:$errMsg")
+            self ! SyncCheck()
           }
-          self ! SyncCheck()
+
         } catch {
           case ex: Throwable =>
             ex.printStackTrace()
@@ -944,6 +1004,8 @@ class Slave @Inject() (userInfo: UserInfo,
                       val memUserName = (members \ "UserName").as[String]
                       val memNickName = (members \ "NickName").as[String]
                       val memDisplayName = (members \ "DisplayName").as[String]
+                      val memImg = (members \ "HeadImgUrl").asOpt[String].getOrElse("")
+
                       //数据库新增成员信息
                       (memUserName,memNickName,memDisplayName,groupid)
                     }
@@ -1132,6 +1194,8 @@ class Slave @Inject() (userInfo: UserInfo,
             userInfo.wxuin = wxuin
             userInfo.pass_ticket = pass_ticket
             userInfo.cookie = cookie
+            //Todo 数据库更新cookie
+            Await.result(userCookieDao.createCookie(userInfo.userid,cookie,wxuin,System.currentTimeMillis()),10.second)
             self ! WXInit()
           }
           else {

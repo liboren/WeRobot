@@ -2,7 +2,7 @@ package controllers
 
 import java.net.{URLDecoder, URLEncoder}
 
-import actor.{CheckUserLogin, GetUuid}
+import actor.{CheckUserLogin, GetUuid, PushLogin}
 import akka.actor.ActorRef
 import com.google.inject.name.Named
 import com.google.inject.{Inject, Singleton}
@@ -24,6 +24,7 @@ import scala.util.control.Breaks
 import common.Constants
 import common.Constants.WeixinAPI
 import akka.util.Timeout
+import models.dao.UserCookieDao
 
 @Singleton
 class Application @Inject()(
@@ -31,6 +32,7 @@ class Application @Inject()(
                                 chatApi:chatApi,
                                 actionUtils: ActionUtils,
                                 appSettings: AppSettings,
+                                userCookieDao: UserCookieDao,
                                 @Named("configured-master") master: ActorRef
                            ) extends Controller with JsonProtocols{
   import actionUtils._
@@ -167,12 +169,26 @@ class Application @Inject()(
 
   def getUuidTest = LoggingAction.async{ implicit request =>
 
-    (master ? GetUuid()).map {
-      case Some(uuid:String) => Ok(successResponse(Json.obj("uuid" -> Json.toJson(uuid))))
-      case None => Ok(jsonResponse(201,"error"))
-      case _ => Ok(jsonResponse(201,"error"))
+    userCookieDao.getCookieByUserid(10000L).flatMap{ res =>
+      val curTime = System.currentTimeMillis() // 单位：秒
+      if(res.isDefined && (curTime - res.get.createtime) < 30 * 60){
+        (master ? PushLogin(res.get.uin,res.get.cookie)).map {
+          case Some(uuid:String) => Ok(successResponse(Json.obj("uuid" -> Json.toJson(uuid))))
+          case None => Ok(jsonResponse(201,"error"))
+          case _ => Ok(jsonResponse(201,"error"))
+        }
+      }
+      else{
+        (master ? GetUuid()).map {
+          case Some(uuid:String) => Ok(successResponse(Json.obj("uuid" -> Json.toJson(uuid))))
+          case None => Ok(jsonResponse(201,"error"))
+          case _ => Ok(jsonResponse(201,"error"))
+        }
+      }
     }
+
   }
+
   def checkUserLoginTest(uuid:String) = LoggingAction.async { implicit request =>
     log.info("check if user login")
     (master ? CheckUserLogin(uuid)).map {
@@ -582,7 +598,7 @@ class Application @Inject()(
       "skey" -> skey
     )
 
-    httpUtil.getJsonRequestSend("getContect", baseUrl,params).map { js =>
+    httpUtil.getJsonRequestSend("getContect", baseUrl,params,null).map { js =>
       try {
         log.debug(js.toString())
         /*

@@ -69,7 +69,7 @@ class chatApi @Inject()(
       "key" -> "0f9e5b979ff05e0e7ee451712854dcf6" //申请到的聚合数据接口专用的APPKEY
     )
 
-    httpUtil.getJsonRequestSend("chatWithRobot", baseUrl,params).map { js =>
+    httpUtil.getJsonRequestSend("chatWithRobot", baseUrl,params,null).map { js =>
       try {
         val errCode = (js \ "error_code").as[Int]
         if(errCode == 0){

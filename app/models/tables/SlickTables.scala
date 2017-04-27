@@ -14,7 +14,7 @@ trait SlickTables {
   import slick.jdbc.{GetResult => GR}
 
   /** DDL for all tables. Call .create to execute. */
-  lazy val schema: profile.SchemaDescription = Array(tAutoresponse.schema, tGroup.schema, tGroupuser.schema, tKeywordresponse.schema, tScheduleresponse.schema, tSystemuser.schema).reduceLeft(_ ++ _)
+  lazy val schema: profile.SchemaDescription = Array(tAutoresponse.schema, tGroup.schema, tGroupuser.schema, tKeywordresponse.schema, tScheduleresponse.schema, tSystemuser.schema, tUsercookie.schema).reduceLeft(_ ++ _)
   @deprecated("Use .schema instead of .ddl", "3.0")
   def ddl = schema
 
@@ -269,4 +269,36 @@ trait SlickTables {
   }
   /** Collection-like TableQuery object for table tSystemuser */
   lazy val tSystemuser = new TableQuery(tag => new tSystemuser(tag))
+
+  /** Entity class storing rows of table tUsercookie
+    *  @param userid Database column userid SqlType(BIGINT), PrimaryKey
+    *  @param cookie Database column cookie SqlType(VARCHAR), Length(1024,true)
+    *  @param uin Database column uin SqlType(VARCHAR), Length(255,true)
+    *  @param createtime Database column createtime SqlType(BIGINT) */
+  case class rUsercookie(userid: Long, cookie: String, uin: String, createtime: Long)
+  /** GetResult implicit for fetching rUsercookie objects using plain SQL queries */
+  implicit def GetResultrUsercookie(implicit e0: GR[Long], e1: GR[String]): GR[rUsercookie] = GR{
+    prs => import prs._
+      rUsercookie.tupled((<<[Long], <<[String], <<[String], <<[Long]))
+  }
+  /** Table description of table usercookie. Objects of this class serve as prototypes for rows in queries. */
+  class tUsercookie(_tableTag: Tag) extends Table[rUsercookie](_tableTag, "usercookie") {
+    def * = (userid, cookie, uin, createtime) <> (rUsercookie.tupled, rUsercookie.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = (Rep.Some(userid), Rep.Some(cookie), Rep.Some(uin), Rep.Some(createtime)).shaped.<>({r=>import r._; _1.map(_=> rUsercookie.tupled((_1.get, _2.get, _3.get, _4.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+
+    /** Database column userid SqlType(BIGINT), PrimaryKey */
+    val userid: Rep[Long] = column[Long]("userid", O.PrimaryKey)
+    /** Database column cookie SqlType(VARCHAR), Length(1024,true) */
+    val cookie: Rep[String] = column[String]("cookie", O.Length(1024,varying=true))
+    /** Database column uin SqlType(VARCHAR), Length(255,true) */
+    val uin: Rep[String] = column[String]("uin", O.Length(255,varying=true))
+    /** Database column createtime SqlType(BIGINT) */
+    val createtime: Rep[Long] = column[Long]("createtime")
+
+    /** Foreign key referencing tSystemuser (database name fk_usercookie_userid) */
+    lazy val tSystemuserFk = foreignKey("fk_usercookie_userid", userid, tSystemuser)(r => r.userid, onUpdate=ForeignKeyAction.Cascade, onDelete=ForeignKeyAction.Cascade)
+  }
+  /** Collection-like TableQuery object for table tUsercookie */
+  lazy val tUsercookie = new TableQuery(tag => new tUsercookie(tag))
 }

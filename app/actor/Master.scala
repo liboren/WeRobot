@@ -11,6 +11,7 @@ import play.api.libs.json.Json
 import util.HttpUtil
 import util.TimeFormatUtil._
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -26,6 +27,7 @@ class Master @Inject()(httpUtil: HttpUtil,
                        memberDao: MemberDao,
                        groupDao: GroupDao,
                        autoResponseDao: AutoResponseDao,
+                       userCookieDao: UserCookieDao,
                        scheduleResponseDao: ScheduleResponseDao) extends Actor with ActorProtocol{
   private final val log = Logger(this.getClass)
   log.debug("------------------  Master created")
@@ -42,6 +44,8 @@ class Master @Inject()(httpUtil: HttpUtil,
   override def postStop():Unit = {
     log.info(s"${self.path.name} stopping...")
   }
+
+  var systemUuid = ""
 
   override def receive:Receive = {
     case SlaveStop(userid) =>
@@ -62,10 +66,46 @@ class Master @Inject()(httpUtil: HttpUtil,
         context.child("slave"+userInfo.userid).get ! BeginInit()
       }
       else {
-        val slave = context.actorOf(Slave.props(userInfo, httpUtil, keywordResponseDao, memberDao,autoResponseDao, groupDao), "slave" + userInfo.userid)
+        val slave = context.actorOf(Slave.props(userInfo, httpUtil, keywordResponseDao, memberDao,autoResponseDao, groupDao,userCookieDao), "slave" + userInfo.userid)
         context.watch(slave)
         slave ! BeginInit() // Todo
         self ! CreateSchedule(userInfo,slave)
+      }
+    case PushLogin(uin,cookie) => //向手机上推送网页版登录请求，需要uin和cookie，需之前登陆过才有cookie，此方式不用扫二维码（第一次登录时需要）
+      val send = sender()
+      val baseUrl = "https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxpushloginurl"
+      val params = List(
+        "uin" -> uin
+      )
+
+      httpUtil.getJsonRequestSend("push login", baseUrl,params,cookie).map { js =>
+        try {
+          val ret = (js \ "ret").as[String]
+          val msg = (js \ "msg").as[String]
+          if(ret.equals("0")){
+            val uuid = (js \ "uuid").as[String]
+            send ! Some(uuid)
+//            self ! CheckUserLogin(uuid)
+          }
+          else{
+            log.error("push login res error:"+msg)
+          }
+          //{"ret":"0","msg":"all ok","uuid":"Id8Q5Ypacg=="}
+          //cookies ->
+          /* pgv_pvi=2468073472; eas_sid=g1z4T9c2j0Y9o2C1k4o2n52114; RK=aWvrSIRKU2;webwxuvid=be846eda114e1e3a7d547f0a948520540447f8308237627c8d258b4ebfe2bcf2c7b7ce9f9c2b4949d3e1fba857bc0fda; tvfe_boss_uuid=6a10faebe6307698;o_cookie=195471917; pgv_pvid=6842915475; pgv_si=s3158088704; ptui_loginuin=195471917; ptisp=cm;ptcz=f7e1d84f0795b91eee3995230c46350467d084dfb7c3b51d4044ef016ed64235; pt2gguin=o0195471917; uin=o0195471917; qm_authimgs_id=0;
+           qm_verifyimagesession=h01fd0c86c265a21ea671e80a6132bb2a03f5047ee53e6bbcdef64033dc87ccad9e7cd317a68a0bbdc4;
+           douyu_loginKey=54a781806e3f818c77a90308daf7be41; refreshTimes=1;
+           webwx_auth_ticket=CIsBEKCz/e0CGoABxtzfcWfe3v9Z+12ZEVInKbg80jyKQ9OJDf+nyHX4FXpDsulhfshrs1fLkavK6mjnf3NaQZ4+E+0s/QJWUZjg2dLwcujvVdQ34TcvEHprWAT8Co/n2rq7g+kKZTVPL8ohJBSV2m79xrOEgNZt9gDCMMsxAj2NDxw1SvoexLSfnnk=;
+           login_frequency=2; last_wxuin=1082267300; wxloadtime=1493192558_expired; wxpluginkey=1493190927; wxuin=1082267300;
+            mm_lang=zh_CN; MM_WX_NOTIFY_STATE=1; MM_WX_SOUND_STATE=1 */
+          log.debug("push login res:"+js)
+        }catch {
+          case ex: Throwable =>
+            log.error(s"error:" + js + s"ex: $ex")
+        }
+      }.onFailure {
+        case e: Exception =>
+          log.error("get 2d code uuid with EXCEPTION：" + e.getMessage)
       }
     case GetUuid() => // 获取二维码uuid
       val send = sender()
@@ -88,6 +128,7 @@ class Master @Inject()(httpUtil: HttpUtil,
           val uuid = res.split(";")(1).split("\"")(1)
           log.info(s"code:$code  uuid:$uuid")
           send ! Some(uuid)
+//          self ! PushLogin("1082267300")
 //          Ok(successResponse(Json.obj("uuid" -> Json.toJson(uuid))))
         }catch {
           case ex: Throwable =>
