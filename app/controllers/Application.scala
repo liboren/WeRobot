@@ -171,11 +171,16 @@ class Application @Inject()(
 
     userCookieDao.getCookieByUserid(10000L).flatMap{ res =>
       val curTime = System.currentTimeMillis() // 单位：秒
-      if(res.isDefined && (curTime - res.get.createtime) <2 * 60 * 60 * 1000){ // 120分钟内使用直接登录，不需要扫码
-        (master ? PushLogin(res.get.uin,res.get.cookie)).map {
-          case Some(uuid:String) => Ok(successResponse(Json.obj("uuid" -> Json.toJson(uuid))))
-          case None => Ok(jsonResponse(201,"error"))
-          case _ => Ok(jsonResponse(201,"error"))
+      if(res.isDefined && (curTime - res.get.createtime) <6 * 60 * 60 * 1000){ // 6小时内使用直接登录，不需要扫码
+        (master ? PushLogin(res.get.uin,res.get.cookie)).flatMap {
+          case Some(uuid:String) => Future.successful(Ok(successResponse(Json.obj("uuid" -> Json.toJson(uuid)))))
+          case None => //推送登录消息失败
+              (master ? GetUuid()).map {
+              case Some(uuid:String) => Ok(successResponse(Json.obj("uuid" -> Json.toJson(uuid))))
+              case None => Ok(jsonResponse(201,"error"))
+              case _ => Ok(jsonResponse(201,"error"))
+            }
+          case _ =>Future.successful(Ok(jsonResponse(201,"error")))
         }
       }
       else{

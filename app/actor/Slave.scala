@@ -59,7 +59,8 @@ class Slave @Inject() (userInfo: UserInfo,
 //  val dropMap = new java.util.HashMap[String,Cancellable](64)
 
 
-//  val debugGroupName = "嘿嘿嘿" //测试用群组名称，同时要修改数据库相应字段
+  var testGroupName = "小明同学"
+//  var debugGroupName = "嘿嘿嘿1" //测试用群组名称，同时要修改数据库相应字段
   var debugGroupName = "盖世英雄"
 
   @throws[Exception](classOf[Exception])
@@ -373,7 +374,7 @@ class Slave @Inject() (userInfo: UserInfo,
       var memberName = "未知" //
       if(groupInfo.isDefined) {
         groupName = groupInfo.get.groupnickname
-      }//@3289701fdde4ad3656abb401ba33c78e @3289701fdde4ad3656abb401ba33c78e
+      }
       if(memberInfo.isDefined) {
         memberName = if (memberInfo.get.userdisplayname.equals("")) memberInfo.get.usernickname else memberInfo.get.userdisplayname
       }
@@ -381,8 +382,36 @@ class Slave @Inject() (userInfo: UserInfo,
         msgType match {
           case 1 => // 文本消息
             if(fromUserName.startsWith("@@")) {//群消息
+            //是否有满足关键词回复
+//              val text = content.split(":<br/>")(1)
+//              withdrawMap.put(msgid,text)
+//              val keywordList = Await.result(keywordResponseDao.getKeywordResponseList(userInfo.userid,groupName), 10.second)
+//              val response = ReplyUtil.autoReply(content, keywordList)
+//              if(response.isDefined) {
+//                response.get._1 match {
+//                  case 1 => //文本
+//                    SendMessage(response.get._2, userInfo.username, fromUserName)
+//                  case 2 => //图片
+//                    self ! SendImgMessage(response.get._2, userInfo.username, fromUserName)
+//                  case 3 => // 表情
+//                    self ! SendEmotionMessage(response.get._2, userInfo.username, fromUserName)
+//                  case 8 => //退群倒计时
+//                    val random = Random.nextInt(60)
+//                    self ! SendMessage(s"@$memberName ${random}s 退群倒计时开始",userInfo.username,fromUserName)
+//                    val schedule  =context.system.scheduler.scheduleOnce(random.second,self,DeleteUserFromGroup(memName,fromUserName))//延迟random秒后踢人
+//                    dropMap.put(memberName,schedule)
+//                  case 9 => //退群倒计时停止
+//                    val res = dropMap.get(memberName)
+//                    if(res.isDefined) {
+//                      res.get.cancel()
+//                      dropMap.remove(memberName)
+//                      self ! SendMessage(s"@$memberName 退群倒计时停止", userInfo.username, fromUserName)
+//                    }
+//                  case _ =>
+//                }
+//              }
               val text = content.split(":<br/>")(1)
-              if(groupName.equals(debugGroupName)) {//Todo 去掉将应用到所有群中
+              if(groupName.contains(debugGroupName) || groupName.equals(testGroupName)) {//Todo 去掉将应用到所有群中
                 withdrawMap.put(msgid,text)
                 if (content.contains("@李暴龙")) { //是否被@
                   val info = content.split("@李暴龙")
@@ -434,21 +463,16 @@ class Slave @Inject() (userInfo: UserInfo,
 //                    self ! SendMessage(s"@$memberName 没关系[愉快]", userInfo.username, fromUserName)
 //                  }
                 }
-                if(text.startsWith("改名")){
-                  val newName = text.substring(3,text.length)
-                  self ! SetGroupName(fromUserName,newName)
-                }
+//                if(text.startsWith("改名")){ // Todo 修改群聊名称
+//                  val newName = text.substring(3,text.length)
+//                  self ! SetGroupName(fromUserName,newName)
+//                }
               }
-                //是否有满足关键词回复
-                //              val keywordList = Await.result(keywordResponseDao.getKeywordResponseList(userInfo.userid,groupName), 10.second)
-                //              val response = ReplyUtil.autoReply(content, keywordList)
-                //              if (response != null) {
-                //                self ! SendMessage(response, toUserName, fromUserName)
-                //              }
+
               log.info(s"\r\n收到文本消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n内容【$text】")
             }
             else{//非群消息
-              if(content.contains("xuomie")){ // 触发入群关键字
+              if(content.contains("入群")){ // 触发入群关键字
                 val groupunionid = Await.result(groupDao.getGroupByName(debugGroupName,userInfo.userid),10.second).get.groupunionid
                 log.info("收到入群请求fromUserName:"+fromUserName)
                 self ! AddUserToGroup(fromUserName,groupunionid)
@@ -541,7 +565,7 @@ class Slave @Inject() (userInfo: UserInfo,
           case 10000 => // 系统消息
             log.info(s"\r\n收到系统消息(type:$msgType)，内容：【$content】来自:【$groupName】")
             //TODO 新人邀请 "FromUserName":"@@131473cf33f36c70ea5a95ce6c359a9e35f32c0ffbddf2e59e242f6a823ff2fa","ToUserName":"@fb6dce95633e13ca08e966a6f9a34e3c","MsgType":10000,"Content":"\" <span class=\"emoji emoji1f338\"></span>卷卷卷<span class=\"emoji emoji1f338\"></span>\"邀请\"Hou$e\"加入了群聊
-            if(groupName.equals(debugGroupName)) { //Todo 注释掉这里应用到全部群组中
+            if(groupName.equals(debugGroupName) || groupName.equals(testGroupName)) { //Todo 注释掉这里应用到全部群组中
               if (content.contains("加入了群聊")) {
                 val pattern = Pattern.compile("""(.*?)邀请\"(.*?)\"加入了群聊""")
                 val matcher = pattern.matcher(content)
@@ -817,6 +841,7 @@ class Slave @Inject() (userInfo: UserInfo,
       }.onFailure {
         case e: Exception =>
           log.error("getMessage with EXCEPTION：" + e.getMessage)
+          self ! SyncCheck()
       }
     case SyncCheckKey() => // 当synccheck返回的selector是4或6时，需要用syncCheckKey更新而不是syncKey
       log.info("收到通讯录更新消息,selector = 4")
@@ -868,6 +893,7 @@ class Slave @Inject() (userInfo: UserInfo,
       }.onFailure {
         case e: Exception =>
           log.error("sync check key with EXCEPTION：" + e.getMessage)
+          self ! SyncCheckKey()
       }
     case SyncCheck() => //心跳检查，是否有新消息
 
@@ -921,10 +947,16 @@ class Slave @Inject() (userInfo: UserInfo,
                 Thread.sleep(1000)
                 self ! SyncCheck()
               }
-              else if(selector.equals("4") || selector.equals("6")){ //4-更新通讯录信息
+              else if(selector.equals("4")){ //4-更新通讯录信息,修改群名称，增删联系人，群聊成员变化
                 self ! SyncCheckKey()
 //                log.error("失去链接，原因retcode:" + retcode + " selector:" + selector)
 //                self ! PoisonPill
+              }
+              else if(selector.equals("3") || selector.equals("6")){
+                context.parent ! SlaveStop(userInfo.userid)
+              }
+              else if(selector.equals("7")){
+                self ! SyncCheck()
               }
               else{
                 self ! SyncCheck()
@@ -993,23 +1025,6 @@ class Slave @Inject() (userInfo: UserInfo,
               val groupNickName = if((groups \ "NickName").asOpt[String].getOrElse("").equals("")) "未命名群组" else (groups \ "NickName").asOpt[String].getOrElse("")
               val groupImg = (groups \ "HeadImgUrl").asOpt[String].getOrElse("")
               val memberCount = (groups \ "MemberCount").as[Int]
-//              val memberList = (groups \ "MemberList").as[Seq[JsValue]]
-//              userInfo.GroupList.put(groupName,BaseInfo(groupNickName,"",groupImg,"","",0))
-//
-//              val memberMap = new ConcurrentHashMap[String,BaseInfo]()
-//              memberList.par.foreach { members =>
-//                val memUserName = (members \ "UserName").asOpt[String].getOrElse("")
-//                val memNickName = (members \ "NickName").asOpt[String].getOrElse("")
-//                val memImg = (groups \ "HeadImgUrl").asOpt[String].getOrElse("")
-//                val memDisplayName = (members \ "DisplayName").asOpt[String].getOrElse("")
-//                val province = (members \ "Province").asOpt[String].getOrElse("")
-//                val city = (members \ "City").asOpt[String].getOrElse("")
-//                val sex = (members \ "Sex").asOpt[Int].getOrElse(0)
-//                memberMap.put(memUserName,BaseInfo(memNickName,memDisplayName,memImg,province,city,sex))
-//              }
-//              userInfo.GroupMemeberList.put(groupName,memberMap)
-              //数据库新增群组信息
-//              if (groupName.startsWith("@@")) {
                 groupDao.createrGroup(groupName, groupNickName, groupImg, 0, userInfo.userid, memberCount).map { groupid =>
                   if (groupid > 0L) {
                     val memberList = (groups \ "MemberList").as[Seq[JsValue]]
@@ -1067,7 +1082,7 @@ class Slave @Inject() (userInfo: UserInfo,
           log.debug("开始获取联系人信息")
 
           val seq = (js \ "Seq").as[Int]
-          if(seq != 0){
+          if(seq != 0){ // 联系人信息如果数量过大会分页
             self ! GetContect(seq.toString)
           }
           

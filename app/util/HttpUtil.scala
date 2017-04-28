@@ -168,9 +168,9 @@ class HttpUtil @Inject()(
     log.debug(methodName + " cookies=" + cookies)
     val futureResult = ws.
       url(url).
-      withHeaders(("Cookie",cookies.toString)).
+      withHeaders(("Cookie",cookies)).
       withFollowRedirects(follow = true).
-      withRequestTimeout(Duration(10, scala.concurrent.duration.SECONDS)).
+      withRequestTimeout(Duration(20, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
       post(postData).map { response =>
 //      log.debug("postJsonRequestSend response headers:" + response.allHeaders)
@@ -301,7 +301,7 @@ class HttpUtil @Inject()(
     log.debug(methodName + " parameters=" + parameters)
     val futureResult = ws.
       url(url).
-      withHeaders(("Cookie",cookies.toString)).
+      withHeaders(("Cookie",cookies)).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(10, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).

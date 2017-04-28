@@ -67,7 +67,7 @@ class Master @Inject()(httpUtil: HttpUtil,
         context.child("slave"+userInfo.userid).get ! BeginInit()
       }
       else {
-        val slave = context.actorOf(Slave.props(userInfo, httpUtil,chatApi, keywordResponseDao, memberDao,autoResponseDao, groupDao,userCookieDao), "slave" + userInfo.userid)
+        val slave = context.actorOf(Slave.props(userInfo, httpUtil,chatApi,keywordResponseDao, memberDao,autoResponseDao, groupDao,userCookieDao), "slave" + userInfo.userid)
         context.watch(slave)
         slave ! BeginInit() // Todo
         self ! CreateSchedule(userInfo,slave)
@@ -89,6 +89,7 @@ class Master @Inject()(httpUtil: HttpUtil,
 //            self ! CheckUserLogin(uuid)
           }
           else{
+            send ! None
             log.error("push login res error:"+msg)
           }
           //{"ret":"0","msg":"all ok","uuid":"Id8Q5Ypacg=="}

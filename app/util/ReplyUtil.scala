@@ -41,22 +41,22 @@ object ReplyUtil{
 //      ("gs2","贡献力量方法：加技师（李暴龙）微信，申请通过后附上自拍照一张，技师收到自拍照并审核通过后会回复一个二维码，用扫码的方式扫描该二维码即可参与到黑科技的队伍中[愉快]",1)
 ////      ("会长", "我只是一名技术工人，需要帮忙请打12580", 0)
 //    )
-    keywordList.foreach { keywordInfo =>
-      keywordInfo.triggertype match {
-        case ACCURATE_MATCH => // 精确匹配
-          if (keywordInfo.keyword == conReform) {
-            return keywordInfo.response
-          }
-        case VAGUE_MATCH => // 模糊匹配
-          if (conReform.contains(keywordInfo.keyword)) {
-            return keywordInfo.response
-          }
-        case _ =>
-          log.error("关键词回复出错，错误原因：没有对应的triggertype for:" + keywordInfo.triggertype)
-          return null
-      }
-    }
-
+//    keywordList.foreach { keywordInfo =>
+//      keywordInfo.triggertype match {
+//        case ACCURATE_MATCH => // 精确匹配
+//          if (keywordInfo.keyword.equals(conReform)) {
+//            return Some((keywordInfo.restype,keywordInfo.response))
+//          }
+//        case VAGUE_MATCH => // 模糊匹配
+//          if (conReform.contains(keywordInfo.keyword)) {
+//            return Some((keywordInfo.restype,keywordInfo.response))
+//          }
+//        case _ =>
+//          log.error("关键词回复出错，错误原因：没有对应的triggertype for:" + keywordInfo.triggertype)
+//          return None
+//      }
+//    }
+//    None
     null
   }
 
