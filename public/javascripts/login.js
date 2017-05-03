@@ -33,7 +33,7 @@ var LoginPage=React.createClass({
                 if(res.errCode == 0){
                     console.log(res.result);
                     if(res.result == "400"){
-                        console.log("登录中");
+                        console.log("等待扫码");
                     }
                     else if(res.result == "408"){
                         console.log("登录超时");

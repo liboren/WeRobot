@@ -2,6 +2,7 @@ package actor
 
 import akka.actor.ActorRef
 import play.api.libs.json.{JsObject, JsValue, Json}
+import play.mvc.Http.Cookie
 
 import scala.collection.mutable
 /**
@@ -71,6 +72,7 @@ case class SendEmotionMessage(mediaid: String, from: String, to: String)
 case class ProcessNewMessage(msgList:Seq[JsValue])
 case class ReceivedNewMessage()
 case class SyncCheck()
+case class SyncHostCheck()
 case class GetGroupContect(chatset:Array[String])
 case class GetContect(seq:String)
 case class StatusNotify()

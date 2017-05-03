@@ -9,7 +9,8 @@ import java.util.concurrent.TimeoutException
 
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{FileIO, Source}
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.stream.{ActorMaterializer, IOResult, Materializer}
+import akka.util.ByteString
 import com.google.inject.{Inject, Singleton}
 import org.asynchttpclient.{AsyncCompletionHandler, AsyncHttpClient, RequestBuilder, Response}
 //import org.asynchttpclient.request.body.multipart.{ByteArrayPart, FilePart}
@@ -191,37 +192,27 @@ class HttpUtil @Inject()(
     futureResult
   }
 
-//  def postFile(methodName:String,url:String,filePart: FilePart) = {
+
+  //上传文件
+  def postFile(methodName:String,url:String,filePart:List[MultipartFormData.Part[Source[ByteString, Future[IOResult]]]]) = {
 //    val tmpFile = new File("C:\\Users\\Macbook\\Desktop\\img\\1492680979899.jpeg")
-//
-////    val filepart = FilePart("hello", "hello.txt", Option("text/plain"), FileIO.fromFile(tmpFile)) ::
-////      DataPart("id", "WU_FILE_1") ::
-////      DataPart("name", tmpFile.getName) ::
-////      DataPart("type", "application/octet-stream") ::
-////      DataPart("lastModifiedDate", "Thu Mar 17 2016 00:55:10 GMT+0800 (CST)") ::
-////      DataPart("size", tmpFile.length().toString) ::
-////      DataPart("mediatype", "pic") ::
-////      DataPart("uploadmediarequest", json) ::
-////      DataPart("webwx_data_ticket", cookies.webwx_data_ticket) ::
-////      DataPart("pass_ticket", "WU_FILE_1") ::
-////      DataPart("filename", tmpFile.getName) ::
-////      List()
-//
-//    val futureResult = ws.url(url).post(Source(filePart)).map{ response =>
-//      if (response.status != 200) {
-//        val body = response.body.slice(0, 1024)
-//        val msg = s"postJsonRequestSend http failed url = $url, status = ${response.status}, text = ${response.statusText}, body = $body"
-//        log.warn(msg)
-//      }
-//      response.body
-//    }
-//    futureResult.onFailure {
-//      case e: Exception =>
-//        log.error(methodName + " error:" + e.getMessage, e)
-//        throw e
-//    }
-//    futureResult
-//  }
+//    val tmpFile = new File(filePath)
+//    log.debug("文件名："+tmpFile.getName)
+    val futureResult = ws.url(url).post(Source(filePart)).map{ response =>
+      if (response.status != 200) {
+        val body = response.body.slice(0, 1024)
+        val msg = s"postJsonRequestSend http failed url = $url, status = ${response.status}, text = ${response.statusText}, body = $body"
+        log.warn(msg)
+      }
+      response.json
+    }
+    futureResult.onFailure {
+      case e: Exception =>
+        log.error(methodName + " error:" + e.getMessage, e)
+        throw e
+    }
+    futureResult
+  }
 
 //  @throws(classOf[TimeoutException])
 //  def postFilePartRequestSend(

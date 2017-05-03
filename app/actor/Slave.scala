@@ -2,11 +2,18 @@ package actor
 
 
 import java.io.File
+import java.nio.charset.Charset
+import java.nio.file.Path
 import java.util.concurrent.{Callable, ConcurrentHashMap}
 import java.util.regex.Pattern
+import javax.activation.MimeType
 import javax.inject.Inject
 
 import akka.actor.{Actor, Cancellable, Props}
+import akka.stream.IOResult
+import akka.stream.scaladsl.{FileIO, Source}
+import akka.util.ByteString
+import com.twitter.util.{Time, TimeFormat}
 import models.dao._
 import play.api.Logger
 import play.api.libs.concurrent.Akka
@@ -20,7 +27,12 @@ import scala.collection.mutable
 import scala.collection.JavaConversions._
 import scala.util.Random
 import common.Constants.FilePath._
+import org.apache.http.entity.mime.MultipartEntityBuilder
+import play.api.mvc.MultipartFormData
+import play.api.mvc.MultipartFormData.{DataPart, FilePart}
 import util.TimeFormatUtil.howLongToNextMinute
+
+import scala.util.control.Breaks
 
 /**
   * Created by Macbook on 2017/4/13.
@@ -154,17 +166,60 @@ class Slave @Inject() (userInfo: UserInfo,
     }
   }
 
-//  def uploadFile(filePath:String):Option[String] = {
-//    val file = new File(filePath)
-//    if(file.exists()){
-//      val flen = file.length()
-//      val ftype = "application/octet-stream"
-//
-//    }
-//    else{
-//      None
-//    }
-//  }
+
+  /**
+    * 上传文件接口
+    * @param filePath 文件路径
+    * @param fileType 文件类型，pic-图片，dic-文件
+    * @return
+    */
+  def uploadFile(filePath:String,fileType:String):Future[Option[String]] = {
+    val baseUrl = "https://file.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json"
+    val file = new File(filePath)
+    val mimeType = "text/plain"
+    userInfo.media_count = userInfo.media_count + 1
+    val mediaType = fileType
+    val timeFormat = "%W %M %d %Y %T GMT%z (%Z)" //"Thu Mar 17 2016 00:55:10 GMT+0800 (CST)"
+    val lastModifieDate = "Thu Mar 17 2016 00:55:10 GMT+0800 (CST)"
+    val fileSize = file.length()
+    val clientMediaId = (System.currentTimeMillis() / 1000).toString
+    val webwxDateTicket = userInfo.cookie.split("webwx_data_ticket=")(1).split(";")(0)
+    val uploadMediaRequest = Json.obj(
+      "BaseRequest" -> Json.obj(
+        "Uin" -> userInfo.wxuin,
+        "Sid" -> userInfo.wxsid,
+        "Skey" -> userInfo.skey,
+        "DeviceID" -> userInfo.deviceId
+      ),
+      "ClientMediaId" -> clientMediaId,
+      "TotalLen" -> fileSize,
+      "StartPos" -> 0,
+      "DataLen" -> fileSize,
+      "MediaType" -> 4
+    )
+    val filePart:List[MultipartFormData.Part[Source[ByteString, Future[IOResult]]]] = FilePart("filename", file.getName, Option("text/plain"), FileIO.fromFile(file)) ::
+      DataPart("id", "WU_FILE_" + userInfo.media_count) ::
+      DataPart("name", file.getName) ::
+      DataPart("type", mimeType) ::
+      DataPart("lastModifiedDate", lastModifieDate) ::
+      DataPart("size", file.length().toString) ::
+      DataPart("mediatype", mediaType) ::
+      DataPart("uploadmediarequest", uploadMediaRequest.toString()) ::
+      DataPart("webwx_data_ticket", webwxDateTicket) ::
+      DataPart("pass_ticket", userInfo.pass_ticket) ::
+      List()
+    httpUtil.postFile("uploadmedia",baseUrl,filePart).map{ json =>
+      log.debug(s"上传图片返回：${json}")
+      val ret = (json \ "BaseResponse" \ "Ret").as[Int]
+      if(ret == 0){
+        val mediaId = (json \ "MediaId").as[String]
+        Some(mediaId)
+      }
+      else{
+        None
+      }
+    }
+  }
 
   override def receive: Receive = {
     case LogOut() =>
@@ -438,9 +493,9 @@ class Slave @Inject() (userInfo: UserInfo,
                   self ! SendEmotionMessage("2ef2b73bf17b4a0921b14b1638601229", userInfo.username, fromUserName)
                 }
                 if (content.contains("表情包")) {
-                  val md5Array = Array("4e616a3846f7a024f205aa1eec62a013", "a98b89ef417633faf4ec9a6ea83fa14b", "e7c66b8d1f7c5d0e60aa87598e5b6494", "4243d122e3012670737dc4f38f62d258", "39d6af92d931fc896f567d2e176aa0c9", "1f98d5d1f74960172e7a8004b1054f5b", "4fe01247c319c06b9d4a12f9e939b114", "45b6be19fa269d0f3bdb14eabd471c03", "e4a9c45361a5937a81e74c67cab730d6", "89ac958b76d94744c956bdf842649a84", "0e13847b3fc38355f9c5470e5ff096a1", "058e5518b78b5abf27f39b8984b4ad15", "0b7f628668f1813a0c121280a0658482","b6bbbefa0dc8346a6a685a3a08b6e66b", "64dc29f92b79a2a5a60c16bf53e3d778", "bb0a2f038b118c59ee08199c2128c6b7", "084108f4a5c274a27495cf2ab78e11fa", "32505b2f7ea0a706f69a27e7babdeaa3", "7487ee11f4d30b095dfc22d4632e6103", "7813a9690695336948a2c487f9dd9c26", "195ac634c58f3b5a6f9a97f7725a3033", "f57eeb863d02119228b2b0943914079e", "d7008cb35b5bfae5d7888a523cf789c2", "0740b555f583be4cb29ae1e1707bc419", "0d204cad49db4b6a194b1de779e401f0"
+                  val md5Array = Array("667bf235e29bc6b37bf3d04b156be7db","fe61375257d3e6382b3556a35ae4932e","819eb9b0ee0fbe5e4bcac5c205c7aa16","4e616a3846f7a024f205aa1eec62a013", "a98b89ef417633faf4ec9a6ea83fa14b", "e7c66b8d1f7c5d0e60aa87598e5b6494", "4243d122e3012670737dc4f38f62d258", "39d6af92d931fc896f567d2e176aa0c9", "1f98d5d1f74960172e7a8004b1054f5b", "4fe01247c319c06b9d4a12f9e939b114", "45b6be19fa269d0f3bdb14eabd471c03", "e4a9c45361a5937a81e74c67cab730d6", "89ac958b76d94744c956bdf842649a84", "0e13847b3fc38355f9c5470e5ff096a1", "058e5518b78b5abf27f39b8984b4ad15", "0b7f628668f1813a0c121280a0658482","b6bbbefa0dc8346a6a685a3a08b6e66b", "64dc29f92b79a2a5a60c16bf53e3d778", "bb0a2f038b118c59ee08199c2128c6b7", "084108f4a5c274a27495cf2ab78e11fa", "32505b2f7ea0a706f69a27e7babdeaa3", "7487ee11f4d30b095dfc22d4632e6103", "7813a9690695336948a2c487f9dd9c26", "195ac634c58f3b5a6f9a97f7725a3033", "f57eeb863d02119228b2b0943914079e", "d7008cb35b5bfae5d7888a523cf789c2", "0740b555f583be4cb29ae1e1707bc419", "0d204cad49db4b6a194b1de779e401f0"
                   )
-                  val random = Random.nextInt(25)
+                  val random = Random.nextInt(md5Array.length)
                   self ! SendEmotionMessage(md5Array(random), userInfo.username, fromUserName)
                 }
 
@@ -947,12 +1002,12 @@ class Slave @Inject() (userInfo: UserInfo,
                 Thread.sleep(1000)
                 self ! SyncCheck()
               }
-              else if(selector.equals("4")){ //4-更新通讯录信息,修改群名称，增删联系人，群聊成员变化
+              else if(selector.equals("4") || selector.equals("6") || selector.equals("1")){ //4-更新通讯录信息,修改群名称，增删联系人，群聊成员变化
                 self ! SyncCheckKey()
 //                log.error("失去链接，原因retcode:" + retcode + " selector:" + selector)
 //                self ! PoisonPill
               }
-              else if(selector.equals("3") || selector.equals("6")){
+              else if(selector.equals("3")){
                 context.parent ! SlaveStop(userInfo.userid)
               }
               else if(selector.equals("7")){
@@ -984,9 +1039,51 @@ class Slave @Inject() (userInfo: UserInfo,
         }.onFailure { //Todo 这里可能会超时，需要重新更换线路
           case e: Exception =>
             log.error("sync check with EXCEPTION：" + e.getMessage)
-            userInfo.syncHost = "webpush2." //Todo 重新找合适的host
-            self ! SyncCheck()
+            self ! SyncHostCheck()
         }
+    case SyncHostCheck() => //检查可用线路,如果掉线了，300秒内可以用wxinit接口重新登录
+
+      val baseUrlList = List("wx2.qq.com/","wx8.qq.com/","web2.wechat.com/","web.wechat.com/","weixin.qq.com/","wx.qq.com/")
+      val loop = new Breaks
+      loop.breakable {
+        for (base <- baseUrlList) {
+          val baseUrl = "http://" + userInfo.syncHost + base + "cgi-bin/mmwebwx-bin/synccheck"
+          val cookies = userInfo.cookie
+          val curTime = System.currentTimeMillis().toString
+          val params = List(
+            "skey" -> userInfo.skey,
+            "synckey" -> userInfo.synckey,
+            "deviceid" -> userInfo.deviceId, //e346659865782051
+            "uin" -> userInfo.wxuin,
+            "sid" -> userInfo.wxsid,
+            "r" -> curTime,
+            "_" -> System.currentTimeMillis().toString
+          )
+          httpUtil.getBodyRequestSend("synccheck", baseUrl, params, cookies).map { body =>
+            try {
+              log.info(s"用户[${userInfo.userid}] baseUrl:[$base] 收到心跳消息:${body.toString.split("=")(1)} ")
+              val retcode = body.split("=")(1).split("\"")(1)
+              val selector = body.split("=")(1).split("\"")(3)
+              if (retcode.equals("0")) {
+                userInfo.base_uri = base
+                self ! SyncCheck()
+                loop.break
+              }
+              else {
+                log.info(s"retcode:$retcode -> SyncBaseUrl（$base）失效,更换新host")
+              }
+            } catch {
+              case ex: Throwable =>
+                ex.printStackTrace()
+                log.error(s"error:" + body + s"ex: $ex")
+            }
+          }.onFailure { //Todo 这里可能会超时，需要重新更换线路
+            case e: Exception =>
+              log.error("sync check with EXCEPTION：" + e.getMessage)
+          }
+        }
+      }
+
     case GetGroupContect(chatset) => // 获取群组详细信息
       log.debug("开始批量获取群组详细信息，群组数量:"+chatset.length)
       val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxbatchgetcontact"
@@ -1136,7 +1233,7 @@ class Slave @Inject() (userInfo: UserInfo,
         case e: Exception =>
           log.error("webwxstatusnotify with EXCEPTION：" + e.getMessage)
       }
-    case WXInit() => //初始化
+    case WXInit() => //初始化 掉线后 300 秒可以重新使用此 api 登录 获取的联系人和群ID保持不变
       log.info("开始微信初始化")
       val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxinit"
 
