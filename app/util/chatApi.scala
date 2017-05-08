@@ -92,6 +92,8 @@ class chatApi @Inject()(
       }
     }
   }
+
+
   def chatWithTulingAPI(info:String,userid:String) = {
 
     log.info(s"chatWithTulingAPI info:$info userid:$userid")
@@ -106,8 +108,15 @@ class chatApi @Inject()(
     httpUtil.postJsonRequestSend("chatWithTulingAPI", baseUrl,List(),postData,"").map { js =>
       log.info("chatWithTulingAPI res :" + js)
       try {
-        val text = (js \ "text").as[String]
-        text
+        val code = (js \ "code").as[Int]
+        if(code == 200000){
+          val url = (js \ "url").as[String]
+          (2,url)
+        }
+        else {
+          val text = (js \ "text").as[String]
+          (1,text)
+        }
 
       }catch {
         case ex: Throwable =>

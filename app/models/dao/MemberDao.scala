@@ -40,14 +40,15 @@ class MemberDao @Inject()(
   /**
     * 获取某个群成员信息
     * @param memberUnionId @@开头的群唯一id
+    * @param groupid 群id
     * @return Option
     * */
-  def getMemberByUnionId(memberUnionId:String) = db.run(
-    tGroupuser.filter(m => m.userunionid === memberUnionId).result.headOption
+  def getMemberByUnionId(memberUnionId:String,groupid:Long) = db.run(
+    tGroupuser.filter(m => m.userunionid === memberUnionId && m.groupid === groupid).result.headOption
   )
 
   def getMemberByNickName(memNickName:String,groupid:Long) = db.run(
-    tGroupuser.filter(m => m.groupid === groupid && m.usernickname === memNickName).result.headOption
+    tGroupuser.filter(m => m.groupid === groupid && ( m.usernickname === memNickName || m.userdisplayname === memNickName)).result.headOption
   )
 
 }

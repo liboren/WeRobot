@@ -27,6 +27,7 @@ import scala.collection.mutable
 import scala.collection.JavaConversions._
 import scala.util.Random
 import common.Constants.FilePath._
+import common.Constants.FileType._
 import org.apache.http.entity.mime.MultipartEntityBuilder
 import play.api.mvc.MultipartFormData
 import play.api.mvc.MultipartFormData.{DataPart, FilePart}
@@ -63,16 +64,18 @@ class Slave @Inject() (userInfo: UserInfo,
   log.debug("------------------  Slave created")
 
 
-  val groupMap = new scala.collection.mutable.HashMap[String, scala.collection.mutable.HashMap[String, String]]()
-  val memberMap = new scala.collection.mutable.HashMap[String, String]()
+//  val groupMap = new scala.collection.mutable.HashMap[String, scala.collection.mutable.HashMap[String, String]]()
+  //  val memberMap = new scala.collection.mutable.HashMap[String, String]()
+
+  val reportMap = new scala.collection.mutable.HashMap[String, mutable.HashSet[String]]()//举报表[被举报人id,举报人集合]
 
   val withdrawMap = new scala.collection.mutable.HashMap[String, String]()//撤回表[msgid,text]
   val dropMap = new scala.collection.mutable.HashMap[String, Cancellable]()//踢人表[username,cancelable]
 //  val dropMap = new java.util.HashMap[String,Cancellable](64)
 
 
-  var testGroupName = "小明同学"
-//  var debugGroupName = "嘿嘿嘿1" //测试用群组名称，同时要修改数据库相应字段
+  var testGroupName = "\uD83E\uDD22盖世尬聊\uD83E\uDD22"
+//  var testGroupName = "嘿嘿嘿1" //测试用群组名称，同时要修改数据库相应字段
   var debugGroupName = "盖世英雄"
 
   @throws[Exception](classOf[Exception])
@@ -170,54 +173,88 @@ class Slave @Inject() (userInfo: UserInfo,
   /**
     * 上传文件接口
     * @param filePath 文件路径
-    * @param fileType 文件类型，pic-图片，dic-文件
+    * @param fileType 文件类型，pic-图片，doc-文件
     * @return
     */
   def uploadFile(filePath:String,fileType:String):Future[Option[String]] = {
     val baseUrl = "https://file.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json"
-    val file = new File(filePath)
-    val mimeType = "text/plain"
-    userInfo.media_count = userInfo.media_count + 1
-    val mediaType = fileType
-    val timeFormat = "%W %M %d %Y %T GMT%z (%Z)" //"Thu Mar 17 2016 00:55:10 GMT+0800 (CST)"
-    val lastModifieDate = "Thu Mar 17 2016 00:55:10 GMT+0800 (CST)"
-    val fileSize = file.length()
-    val clientMediaId = (System.currentTimeMillis() / 1000).toString
-    val webwxDateTicket = userInfo.cookie.split("webwx_data_ticket=")(1).split(";")(0)
-    val uploadMediaRequest = Json.obj(
-      "BaseRequest" -> Json.obj(
-        "Uin" -> userInfo.wxuin,
-        "Sid" -> userInfo.wxsid,
-        "Skey" -> userInfo.skey,
-        "DeviceID" -> userInfo.deviceId
-      ),
-      "ClientMediaId" -> clientMediaId,
-      "TotalLen" -> fileSize,
-      "StartPos" -> 0,
-      "DataLen" -> fileSize,
-      "MediaType" -> 4
-    )
-    val filePart:List[MultipartFormData.Part[Source[ByteString, Future[IOResult]]]] = FilePart("filename", file.getName, Option("text/plain"), FileIO.fromFile(file)) ::
-      DataPart("id", "WU_FILE_" + userInfo.media_count) ::
-      DataPart("name", file.getName) ::
-      DataPart("type", mimeType) ::
-      DataPart("lastModifiedDate", lastModifieDate) ::
-      DataPart("size", file.length().toString) ::
-      DataPart("mediatype", mediaType) ::
-      DataPart("uploadmediarequest", uploadMediaRequest.toString()) ::
-      DataPart("webwx_data_ticket", webwxDateTicket) ::
-      DataPart("pass_ticket", userInfo.pass_ticket) ::
-      List()
-    httpUtil.postFile("uploadmedia",baseUrl,filePart).map{ json =>
-      log.debug(s"上传图片返回：${json}")
-      val ret = (json \ "BaseResponse" \ "Ret").as[Int]
-      if(ret == 0){
-        val mediaId = (json \ "MediaId").as[String]
-        Some(mediaId)
+    try {
+      val file = new File(filePath)
+//      val mimeType = "text/plain"
+          val mimeType = filePath.split("\\.").last match{ //音频是audio/mp3 视频是video/mp4 图片是image/jpeg image/gif
+            case "mp4" => "video/mp4"
+            case "mp3" => "audio/mp3"
+            case "png" => "image/png"
+            case "jpeg" => "image/jpeg"
+            case "gif" =>   "image/gif"
+            case _ =>   "image/gif"
+          }
+
+      log.debug("!!!!!!!!!!!!!!!!!!!!!!!!!!!!"+mimeType)
+      userInfo.media_count = userInfo.media_count + 1
+      val mediaType = fileType
+      //    val timeFormat = "%W %M %d %Y %T GMT%z (%Z)" //"Thu Mar 17 2016 00:55:10 GMT+0800 (CST)"
+      val lastModifieDate = "Thu Mar 17 2016 00:55:10 GMT+0800 (CST)"
+      val fileSize = file.length()
+      val clientMediaId = (System.currentTimeMillis() / 1000).toString
+      val webwxDateTicket = userInfo.cookie.split("webwx_data_ticket=")(1).split(";")(0)
+      //{"UploadType":2,
+      // "BaseRequest":{
+      // "Uin":1082267300,
+      // "Sid":"K0dEfHqtjaZdc1y7",
+      // "Skey":"@crypt_f6c3cb1f_10a01a17d7c2ecff80b0b37db4d5d828",
+      // "DeviceID":"e631608860899445"
+      // },
+      // "ClientMediaId":1493972700337,
+      // "TotalLen":12,
+      // "StartPos":0,
+      // "DataLen":12,
+      // "MediaType":4,
+      // "FromUserName":"@5dbe2dab56b829a695de9af304ba779e",
+      // "ToUserName":"filehelper",
+      // "FileMd5":"a0e4ca34f80fb7216d8bf929438595f9"}
+
+      val uploadMediaRequest = Json.obj(
+        //      "UploadType" -> 2,
+        "BaseRequest" -> Json.obj(
+          "Uin" -> userInfo.wxuin,
+          "Sid" -> userInfo.wxsid,
+          "Skey" -> userInfo.skey,
+          "DeviceID" -> userInfo.deviceId
+        ),
+        "ClientMediaId" -> clientMediaId,
+        "TotalLen" -> fileSize,
+        "StartPos" -> 0,
+        "DataLen" -> fileSize,
+        "MediaType" -> 4
+      )
+      val filePart: List[MultipartFormData.Part[Source[ByteString, Future[IOResult]]]] =
+        FilePart("filename", file.getName, Option(mimeType), FileIO.fromFile(file)) ::
+          DataPart("id", "WU_FILE_" + userInfo.media_count) ::
+          DataPart("name", file.getName) ::
+          DataPart("type", mimeType) ::
+          DataPart("lastModifiedDate", lastModifieDate) ::
+          DataPart("size", file.length().toString) ::
+          DataPart("mediatype", mediaType) ::
+          DataPart("uploadmediarequest", uploadMediaRequest.toString()) ::
+          DataPart("webwx_data_ticket", webwxDateTicket) ::
+          DataPart("pass_ticket", userInfo.pass_ticket) ::
+          List()
+      httpUtil.postFile("uploadmedia", baseUrl, filePart).map { json =>
+        log.debug(s"上传文件返回：${json}")
+        val ret = (json \ "BaseResponse" \ "Ret").as[Int]
+        if (ret == 0) {
+          val mediaId = (json \ "MediaId").as[String]
+          Some(mediaId)
+        }
+        else {
+          None
+        }
       }
-      else{
-        None
-      }
+    } catch{
+      case e : Exception =>
+        e.printStackTrace()
+        Future.successful(None)
     }
   }
 
@@ -386,7 +423,7 @@ class Slave @Inject() (userInfo: UserInfo,
           val ret = (js \ "BaseResponse" \ "Ret").as[Int]
           if(ret == 0){
             log.info(s"踢出群成员成功:\r\n群:$groupunionid \r\n成员:$userunionid \r\n")
-            self ! AddUserToGroup(userunionid,groupunionid)
+//            self ! AddUserToGroup(userunionid,groupunionid) // 被踢后自动邀请该人入群
           }
           else{
             val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
@@ -407,7 +444,7 @@ class Slave @Inject() (userInfo: UserInfo,
       log.info("开始准备与微信建立链接")
       self ! GetTicketAndKey()
     case GetImg(imgUrl,path,name) => // 获取群聊图片或表情
-      httpUtil.getFileRequestSend("get emotion file",imgUrl,userInfo.cookie,List(),name,path).map{ res =>
+      httpUtil.getFileRequestSend("get emotion file",imgUrl,userInfo.cookie,List(),name,path,IMG_TYPE).map{ res =>
         if(res.isDefined){
           log.debug(s"下载文件[$imgUrl]成功,文件名：${res.get}")
         }
@@ -418,20 +455,47 @@ class Slave @Inject() (userInfo: UserInfo,
         case e: Exception =>
           log.error("GetImg with EXCEPTION：" + e.getMessage)
       }
+    case GetVideo(msgId,path,name) => // 获取视频
+      val videoUrl = s"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetvideo?msgid=$msgId&skey=${userInfo.skey}"
+      httpUtil.getFileRequestSend("get video file",videoUrl,userInfo.cookie,List(),name,path,VIDEO_TYPE).map{ res =>
+        if(res.isDefined){
+          log.debug(s"下载视频文件[$videoUrl]成功,文件名：${res.get}")
+        }
+        else{
+          log.debug(s"下载视频文件[$videoUrl]失败")
+        }
+      }.onFailure {
+        case e: Exception =>
+          log.error("GetImg with EXCEPTION：" + e.getMessage)
+      }
+    case GetVoice(msgId,path,name) => // 获取语音
+      val voiceUrl = s"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetvoice?MsgID=$msgId&skey=${userInfo.skey}"
+      httpUtil.getFileRequestSend("get voice file",voiceUrl,userInfo.cookie,List(),name,path,AUDIO_TYPE).map{ res =>
+        if(res.isDefined){
+          log.debug(s"下载音频文件[$voiceUrl]成功,文件名：${res.get}")
+        }
+        else{
+          log.debug(s"下载音频文件[$voiceUrl]失败")
+        }
+      }.onFailure {
+        case e: Exception =>
+          log.error("GetImg with EXCEPTION：" + e.getMessage)
+      }
     case HandleMsg(fromUserName,toUserName,msgType,msgid,msg) => // 处理消息细节
       val content = (msg \ "Content").as[String]
 
       val memName = content.split(":<br/>")(0)
 
-      val groupInfo = Await.result(groupDao.getGroupByUnionId(fromUserName),10.second)
-      val memberInfo = Await.result(memberDao.getMemberByUnionId(memName),10.second)
       var groupName = "未知"
-      var memberName = "未知" //
+      var memberName = "未知"
+
+      val groupInfo = Await.result(groupDao.getGroupByUnionId(fromUserName),10.second)
       if(groupInfo.isDefined) {
         groupName = groupInfo.get.groupnickname
-      }
-      if(memberInfo.isDefined) {
-        memberName = if (memberInfo.get.userdisplayname.equals("")) memberInfo.get.usernickname else memberInfo.get.userdisplayname
+        val memberInfo = Await.result(memberDao.getMemberByUnionId(memName, groupInfo.get.groupid), 10.second)
+        if(memberInfo.isDefined) {
+          memberName = if (memberInfo.get.userdisplayname.equals("")) memberInfo.get.usernickname else memberInfo.get.userdisplayname
+        }
       }
       log.info(s"收到新消息【$msg】")
         msgType match {
@@ -468,8 +532,8 @@ class Slave @Inject() (userInfo: UserInfo,
               val text = content.split(":<br/>")(1)
               if(groupName.contains(debugGroupName) || groupName.equals(testGroupName)) {//Todo 去掉将应用到所有群中
                 withdrawMap.put(msgid,text)
-                if (content.contains("@李暴龙")) { //是否被@
-                  val info = content.split("@李暴龙")
+                if (content.contains("@一不小心就背锅的李暴龙")) { //是否被@
+                  val info = content.split("@一不小心就背锅的李暴龙")
                   if (info.length > 1) {
                     val msg = info(1).replace(" ", "").trim() // 把@姓名 后面的特殊空格去掉并去掉首尾的空格
                     if (msg == "") {
@@ -477,8 +541,22 @@ class Slave @Inject() (userInfo: UserInfo,
                       self ! SendEmotionMessage("1f98d5d1f74960172e7a8004b1054f5b", userInfo.username, fromUserName)
                     }
                     else{
-                      chatApi.chatWithTulingAPI(msg,memName).map{ restext =>
-                        self ! SendMessage(restext,userInfo.username,fromUserName)
+                      chatApi.chatWithTulingAPI(msg,memName).map{ response => // 对接图灵API
+                        response._1 match{
+                          case 1 => //文本
+                            self ! SendMessage(response._2,userInfo.username,fromUserName)
+                          case 2 => //图片
+                            httpUtil.getFileRequestSend("download pic",response._2,null,null,null,null,"jpeg").map{ fileOpt =>
+                              if(fileOpt.isDefined){
+                                uploadFile(fileOpt.get,"pic").map{ mediaidOpt =>
+                                  if(mediaidOpt.isDefined){
+                                    self ! SendImgMessage(mediaidOpt.get,userInfo.username,fromUserName)
+                                  }
+                                }
+                              }
+                            }
+                          case _ =>
+                        }
                       }
                     }
                   }
@@ -493,12 +571,44 @@ class Slave @Inject() (userInfo: UserInfo,
                   self ! SendEmotionMessage("2ef2b73bf17b4a0921b14b1638601229", userInfo.username, fromUserName)
                 }
                 if (content.contains("表情包")) {
-                  val md5Array = Array("667bf235e29bc6b37bf3d04b156be7db","fe61375257d3e6382b3556a35ae4932e","819eb9b0ee0fbe5e4bcac5c205c7aa16","4e616a3846f7a024f205aa1eec62a013", "a98b89ef417633faf4ec9a6ea83fa14b", "e7c66b8d1f7c5d0e60aa87598e5b6494", "4243d122e3012670737dc4f38f62d258", "39d6af92d931fc896f567d2e176aa0c9", "1f98d5d1f74960172e7a8004b1054f5b", "4fe01247c319c06b9d4a12f9e939b114", "45b6be19fa269d0f3bdb14eabd471c03", "e4a9c45361a5937a81e74c67cab730d6", "89ac958b76d94744c956bdf842649a84", "0e13847b3fc38355f9c5470e5ff096a1", "058e5518b78b5abf27f39b8984b4ad15", "0b7f628668f1813a0c121280a0658482","b6bbbefa0dc8346a6a685a3a08b6e66b", "64dc29f92b79a2a5a60c16bf53e3d778", "bb0a2f038b118c59ee08199c2128c6b7", "084108f4a5c274a27495cf2ab78e11fa", "32505b2f7ea0a706f69a27e7babdeaa3", "7487ee11f4d30b095dfc22d4632e6103", "7813a9690695336948a2c487f9dd9c26", "195ac634c58f3b5a6f9a97f7725a3033", "f57eeb863d02119228b2b0943914079e", "d7008cb35b5bfae5d7888a523cf789c2", "0740b555f583be4cb29ae1e1707bc419", "0d204cad49db4b6a194b1de779e401f0"
+                  val md5Array = Array("bf0d7dda34547b18076e847fc7e85a53","3d6c6521db1017f40586d0f59ddb394d","ed597bd0a14e7c88e0d027cd1048825b","e76499df1fc91bfebe0d5724ce41bc07","030c4626054ca14798ae2d2f1b761f58","acb3d589e40d171be6a6fb445896468a","667bf235e29bc6b37bf3d04b156be7db","fe61375257d3e6382b3556a35ae4932e","819eb9b0ee0fbe5e4bcac5c205c7aa16","4e616a3846f7a024f205aa1eec62a013", "a98b89ef417633faf4ec9a6ea83fa14b", "e7c66b8d1f7c5d0e60aa87598e5b6494", "4243d122e3012670737dc4f38f62d258", "39d6af92d931fc896f567d2e176aa0c9", "1f98d5d1f74960172e7a8004b1054f5b", "4fe01247c319c06b9d4a12f9e939b114", "45b6be19fa269d0f3bdb14eabd471c03", "e4a9c45361a5937a81e74c67cab730d6", "89ac958b76d94744c956bdf842649a84", "0e13847b3fc38355f9c5470e5ff096a1", "058e5518b78b5abf27f39b8984b4ad15", "0b7f628668f1813a0c121280a0658482","b6bbbefa0dc8346a6a685a3a08b6e66b", "64dc29f92b79a2a5a60c16bf53e3d778", "bb0a2f038b118c59ee08199c2128c6b7", "084108f4a5c274a27495cf2ab78e11fa", "32505b2f7ea0a706f69a27e7babdeaa3", "7487ee11f4d30b095dfc22d4632e6103", "7813a9690695336948a2c487f9dd9c26", "195ac634c58f3b5a6f9a97f7725a3033", "f57eeb863d02119228b2b0943914079e", "d7008cb35b5bfae5d7888a523cf789c2", "0740b555f583be4cb29ae1e1707bc419", "0d204cad49db4b6a194b1de779e401f0"
                   )
                   val random = Random.nextInt(md5Array.length)
                   self ! SendEmotionMessage(md5Array(random), userInfo.username, fromUserName)
                 }
 
+                if(text.startsWith("举报")){
+                  val pattern = Pattern.compile("""举报@(.*?) """)
+                  val matcher = pattern.matcher(text)
+                  val boolean = matcher.matches()
+                  if(boolean) {
+                    val repoter = matcher.group(1) // 被举报人的昵称
+                    memberDao.getMemberByNickName(repoter,groupInfo.get.groupid).map{ memExist =>
+                      if(memExist.isDefined){
+                        val repoterUserName = memExist.get.userunionid //被举报人的unionid
+                        val userExist = reportMap.get(repoterUserName) //此人是否被举报过
+                        if(userExist.isDefined){
+                          userExist.get.add(memName) //memName 举报人id
+                        }
+                        else{
+                          reportMap.put(repoterUserName,mutable.HashSet(memName))
+                        }
+                        val reportTime = reportMap(repoterUserName).size // 被举报次数
+                        if(reportTime > 3){
+                          self ! SendMessage(s"@$repoter 被举报次数过多，将被移出群聊",userInfo.username,fromUserName)
+                          self ! DeleteUserFromGroup(repoterUserName,fromUserName)
+                          reportMap.remove(repoterUserName)
+                        }
+                        else{
+                          self ! SendMessage(s"@$repoter 被举报$reportTime 次，请注意你的言行！",userInfo.username,fromUserName)
+                        }
+                      }
+                    }
+                  }
+                  else{
+                    self ! SendMessage(s"如有成员再群内散布广告或恶意言论，请发送（举报@投诉人）进行举报！（beta版）",userInfo.username,fromUserName)
+                  }
+                }
                 if(text.contains("退群")){ // 触发退群关键字
                   val random = Random.nextInt(60)
                   self ! SendMessage(s"@$memberName ${random}s 退群倒计时开始",userInfo.username,fromUserName)
@@ -535,16 +645,17 @@ class Slave @Inject() (userInfo: UserInfo,
               log.info(s"\r\n收到文本消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n内容【$content】")
             }
           case 3 => // 图片消息
-            val msgId = (msg \ "MsgId").as[String]
-            val imgUrl = s"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetmsgimg?MsgID=$msgId&skey=${userInfo.skey}"
+            val imgUrl = s"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetmsgimg?MsgID=$msgid&skey=${userInfo.skey}"
             log.info(s"\r\n收到图片消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n图片地址【$imgUrl】")
-            self ! GetImg(imgUrl,IMG_PATH,null)
+            val fileName = System.currentTimeMillis().toString
+            self ! GetImg(imgUrl,IMG_PATH,fileName)
+            withdrawMap.put(msgid,"@@"+fileName)
           //如果是图片消息，通过MsgId字段获取msgid，然后调用以下接口获取图片，type字段为空为大图，否则是缩略图
           //https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetmsgimg?MsgID=4880689959463718121&type=slave&skey=@crypt_f6c3cb1f_8b158d6e5d7df945580d590bd7612083
           case 34 => // 语音消息
-            val msgId = (msg \ "MsgId").as[String]
-            val voiceUrl = s"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetvoice?MsgID=$msgId&skey=${userInfo.skey}"
-            log.info(s"\r\n收到语音消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n语音地址【$voiceUrl】")
+            self ! GetVoice(msgid,AUDIO_PATH,msgid)
+            withdrawMap.put(msgid,"@@@@"+msgid)
+            log.info(s"\r\n收到语音消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】")
           case 42 => //名片消息
             val recommendInfo = (msg \ "RecommendInfo").as[JsObject]
             val cardNickName = (recommendInfo \ "NickName").as[String]
@@ -558,6 +669,10 @@ class Slave @Inject() (userInfo: UserInfo,
               case _ => "unknow"
             }
             log.info(s"\r\n收到名片消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】%内容【名称:$cardNickName 别名:$cardAlias 省份:$cardProvince 城市:$cardCity 性别:$cardSex 】")
+          case 43 => //视频
+            self ! GetVideo(msgid,VIDEO_PATH,msgid)
+            withdrawMap.put(msgid,"@@@@@"+msgid)
+            log.info(s"\r\n收到视频消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】")
           case 47 => // 动画表情
             if (content.contains("cdnurl = ")) {
 //              val cdnurl = content.split("cdnurl = \"")(1).split("\"")(0)
@@ -568,6 +683,7 @@ class Slave @Inject() (userInfo: UserInfo,
                 val cdnurl = matcher.group(2)
                 log.info(s"\r\n收到动画表情(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】表情地址【$cdnurl】MD5【$md5】")
                 self ! GetImg(cdnurl,EMOTION_PATH,md5)
+                withdrawMap.put(msgid,"@@@"+md5)
               }
             }
           // content字段里除了发送人id，还会有一个cdnurl字段，里面是动画表情的地址
@@ -614,32 +730,37 @@ class Slave @Inject() (userInfo: UserInfo,
               log.info(s"(type:$msgType)在手机上操作了微信：$content")
             }
           case 62 => // 小视频
-            val msgId = (msg \ "MsgId").as[String]
-            val videoUrl = s"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxgetvideo?MsgID=$msgId&skey=${userInfo.skey}"
-            log.info(s"\r\n收到视频消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】%视频地址【$videoUrl】")
+            self ! GetVideo(msgid,VIDEO_PATH,msgid)
+            log.info(s"\r\n收到视频消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】")
           case 10000 => // 系统消息
             log.info(s"\r\n收到系统消息(type:$msgType)，内容：【$content】来自:【$groupName】")
             //TODO 新人邀请 "FromUserName":"@@131473cf33f36c70ea5a95ce6c359a9e35f32c0ffbddf2e59e242f6a823ff2fa","ToUserName":"@fb6dce95633e13ca08e966a6f9a34e3c","MsgType":10000,"Content":"\" <span class=\"emoji emoji1f338\"></span>卷卷卷<span class=\"emoji emoji1f338\"></span>\"邀请\"Hou$e\"加入了群聊
             if(groupName.equals(debugGroupName) || groupName.equals(testGroupName)) { //Todo 注释掉这里应用到全部群组中
               if (content.contains("加入了群聊")) {
-                val pattern = Pattern.compile("""(.*?)邀请\"(.*?)\"加入了群聊""")
+                val pattern = Pattern.compile("""(.*?)邀请"(.*?)"加入了群聊""")
                 val matcher = pattern.matcher(content)
-                val inviter = matcher.group(1)
-                val invitee = matcher.group(2)
-                autoResponseDao.getAutoresponseByGroupNickName(userInfo.userid,groupName).map{ responseOpt =>
-                  if(responseOpt.isDefined){
-                    log.info(s"$inviter 邀请 $invitee 加入了群聊")
-                    self ! SendMessage(responseOpt.get.response.replaceAll("@被邀请人",s"@$invitee "), toUserName, fromUserName)
+                val boolean = matcher.matches()
+                if(boolean) {
+                  val inviter = matcher.group(1)
+                  val invitee = matcher.group(2)
+                  autoResponseDao.getAutoresponseByGroupNickName(userInfo.userid, groupName).map { responseOpt =>
+                    if (responseOpt.isDefined) {
+                      log.info(s"$inviter 邀请 $invitee 加入了群聊")
+                      self ! SendMessage(responseOpt.get.response.replaceAll("@被邀请人", s"@$invitee ").replaceAll("@邀请人", s"$inviter "), toUserName, fromUserName)
+                    }
                   }
                 }
               }
               else if (content.contains("移出了群聊")) {
-                val pattern = Pattern.compile("""(.*?)将\"(.*?)\"移出了群聊""")
+                val pattern = Pattern.compile("""(.*?)将"(.*?)"移出了群聊""")
                 val matcher = pattern.matcher(content)
-                val inviter = matcher.group(1)
-                val invitee = matcher.group(2)
-                log.info(s"$inviter 将 $invitee 移出了群聊")
-                self ! SendMessage(s"$invitee 被移出了群聊", toUserName, fromUserName)
+                val boolean = matcher.matches()
+                if(boolean) {
+                  val inviter = matcher.group(1)
+                  val invitee = matcher.group(2)
+                  log.info(s"$inviter 将 $invitee 移出了群聊")
+                  self ! SendMessage(s"$invitee 被移出了群聊", toUserName, fromUserName)
+                }
               }
               else if(content.contains("修改群名为")){
                 val pattern = Pattern.compile(""".*?修改群名为.*?“(.*?)”.*?""")
@@ -657,15 +778,54 @@ class Slave @Inject() (userInfo: UserInfo,
             }
           case 10002 => // 撤回消息
             log.info(s"\r\n【$groupName】撤回了一条消息(type:$msgType)，内容：【$content】")
-            val chehuiUserName = content.split(":<br/>")(0)
-            //Todo 找到撤回的内容
-            val pattern = Pattern.compile(""".*?/oldmsgid&gt;&lt;msgid&gt;(\d*).*?撤回了一条消息.*?""")
-            val matcher = pattern.matcher(content)
-            val boolean = matcher.matches()
-            val withdrawId = matcher.group(1)//撤回的消息id
+//            val mediaId2 = Await.result(uploadFile(IMG_PATH + "1493975358082" + ".jpeg", "pic"), 20.second)
+//            if (mediaId2.isDefined) {
+//              self ! SendMessage(s"$memberName 撤回了一张图片，内容如下", userInfo.username, fromUserName)
+//              self ! SendImgMessage(mediaId2.get, userInfo.username, fromUserName)
+//            }
+//            val mediaId = Await.result(uploadFile(VIDEO_PATH + "438471790256198743" + ".mp4", "video"), 20.second)
+//            if (mediaId.isDefined) {
+//              self ! SendMessage(s"$memberName 撤回了一段视频，内容如下", userInfo.username, fromUserName)
+//              self ! SendVideoMessage(mediaId.get, userInfo.username, fromUserName)
+//            }
 
-            if(withdrawMap.get(withdrawId).isDefined) {
-              self ! SendMessage(s"$memberName 撤回了一条消息，内容:[${withdrawMap(withdrawId)}]", userInfo.username, fromUserName)
+            if(groupName.equals(debugGroupName) || groupName.equals(testGroupName)) {
+              val pattern = Pattern.compile(""".*?/oldmsgid&gt;&lt;msgid&gt;(\d*).*?撤回了一条消息.*?""")
+              val matcher = pattern.matcher(content)
+              val boolean = matcher.matches()
+              val withdrawId = matcher.group(1) //撤回的消息id
+
+              if (withdrawMap.get(withdrawId).isDefined) {
+                val resContent = withdrawMap(withdrawId)
+                if (resContent.startsWith("@@@@@")) { // 视频
+                  val mediaId = Await.result(uploadFile(VIDEO_PATH + resContent.takeRight(resContent.length - 5) + ".mp4", "video"), 20.second)
+                  if (mediaId.isDefined) {
+                    self ! SendMessage(s"$memberName 撤回了一段视频，内容如下", userInfo.username, fromUserName)
+                    self ! SendVideoMessage(mediaId.get, userInfo.username, fromUserName)
+                  }
+                }
+                else if (resContent.startsWith("@@@@")) { // 语音
+                  val mediaId = Await.result(uploadFile(AUDIO_PATH + resContent.takeRight(resContent.length - 4) + ".mp3", "audio"), 20.second)
+                  if (mediaId.isDefined) {
+                    self ! SendMessage(s"$memberName 撤回了一条语音，内容如下", userInfo.username, fromUserName)
+                    self ! SendAudioMessage(mediaId.get, userInfo.username, fromUserName)
+                  }
+                } 
+                else if (resContent.startsWith("@@@")) { //表情
+                  self ! SendMessage(s"$memberName 撤回了一条动画表情,内容如下", userInfo.username, fromUserName)
+                  self ! SendEmotionMessage(resContent.takeRight(resContent.length - 3), userInfo.username, fromUserName)
+                }
+                else if (resContent.startsWith("@@")) { //图片
+                  val mediaId = Await.result(uploadFile(IMG_PATH + resContent.takeRight(resContent.length - 2) + ".jpeg", "pic"), 20.second)
+                  if (mediaId.isDefined) {
+                    self ! SendMessage(s"$memberName 撤回了一张图片，内容如下", userInfo.username, fromUserName)
+                    self ! SendImgMessage(mediaId.get, userInfo.username, fromUserName)
+                  }
+                }
+                else {
+                  self ! SendMessage(s"$memberName 撤回了一条消息，内容:[${withdrawMap(withdrawId)}]", userInfo.username, fromUserName)
+                }
+              }
             }
           case _ => // 其他消息
 
@@ -720,7 +880,104 @@ class Slave @Inject() (userInfo: UserInfo,
         }
       }.onFailure {
         case e: Exception =>
-          log.error("sendMessage with EXCEPTION：" + e.getMessage)
+          log.error("SendImgMessage with EXCEPTION：" + e.getMessage)
+      }
+    case SendVideoMessage(mediaid: String, from: String, to: String) => //发送视频消息
+      val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxsendvideomsg"
+      val cookies = userInfo.cookie
+      val curTime = System.currentTimeMillis()
+      val LocalID = curTime + SecureUtil.nonceDigit(4)
+      val params = List(
+        "fun" -> "async",
+        "f" -> "json",
+        "lang" -> "zh_CN",
+        "pass_ticket" -> userInfo.pass_ticket
+      )
+      val postData = Json.obj(
+        "BaseRequest" -> Json.obj(
+          "Uin" -> userInfo.wxuin,
+          "Sid" -> userInfo.wxsid,
+          "Skey" -> userInfo.skey,
+          "DeviceID" -> userInfo.deviceId
+        ),
+        "Msg" -> Json.obj(
+          "Type" -> 43,
+          "Content" -> "",
+          "MediaId" -> mediaid, //要发送的消息
+          "FromUserName" -> from, //自己ID
+          "ToUserName" -> to, //好友ID
+          "LocalID" -> LocalID, //与ClientMsgId相同
+          "ClientMsgId" -> LocalID //时间戳左移4位加4位随机数
+        ),
+        "Scene" -> "0"
+
+      )
+      httpUtil.postJsonRequestSend("SendVideoMessage", baseUrl, params, postData, cookies).map { js =>
+        try {
+          val ret = (js \ "BaseResponse" \ "Ret").as[Int]
+          if(ret == 0){
+            log.info(s"发送视频消息成功:\r\nfrom:$from \r\nto:$to \r\nMediaId:【$mediaid】")
+          }
+          else{
+            val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+            log.info(s"发送视频消息失败，原因：ret:$ret errormsg:$errMsg")
+          }
+        } catch {
+          case ex: Throwable =>
+            ex.printStackTrace()
+            log.error(s"error:" + js + s"ex: $ex")
+        }
+      }.onFailure {
+        case e: Exception =>
+          log.error("SendVideoMessage with EXCEPTION：" + e.getMessage)
+      }
+    case SendAudioMessage(mediaid: String, from: String, to: String) => //发送语音消息
+      val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxsendvoicemsg"
+      val cookies = userInfo.cookie
+      val curTime = System.currentTimeMillis()
+      val LocalID = curTime + SecureUtil.nonceDigit(4)
+      val params = List(
+        "fun" -> "async",
+        "f" -> "json",
+        "pass_ticket" -> userInfo.pass_ticket
+      )
+      val postData = Json.obj(
+        "BaseRequest" -> Json.obj(
+          "Uin" -> userInfo.wxuin,
+          "Sid" -> userInfo.wxsid,
+          "Skey" -> userInfo.skey,
+          "DeviceID" -> userInfo.deviceId
+        ),
+        "Msg" -> Json.obj(
+          "Type" -> 34,
+          "Content" -> "",
+          "MediaId" -> mediaid, //要发送的消息
+          "FromUserName" -> from, //自己ID
+          "ToUserName" -> to, //好友ID
+          "LocalID" -> LocalID, //与ClientMsgId相同
+          "ClientMsgId" -> LocalID //时间戳左移4位加4位随机数
+        ),
+        "Scene" -> "0"
+
+      )
+      httpUtil.postJsonRequestSend("SendAudioMessage", baseUrl, params, postData, cookies).map { js =>
+        try {
+          val ret = (js \ "BaseResponse" \ "Ret").as[Int]
+          if(ret == 0){
+            log.info(s"发送音频消息成功:\r\nfrom:$from \r\nto:$to \r\nMediaId:【$mediaid】")
+          }
+          else{
+            val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+            log.info(s"发送音频消息失败，原因：ret:$ret errormsg:$errMsg")
+          }
+        } catch {
+          case ex: Throwable =>
+            ex.printStackTrace()
+            log.error(s"error:" + js + s"ex: $ex")
+        }
+      }.onFailure {
+        case e: Exception =>
+          log.error("SendAudioMessage with EXCEPTION：" + e.getMessage)
       }
     case SendEmotionMessage(mediaid: String, from: String, to: String) => //发送表情消息
       val baseUrl = "http://"+userInfo.base_uri+"cgi-bin/mmwebwx-bin/webwxsendemoticon"
@@ -740,7 +997,7 @@ class Slave @Inject() (userInfo: UserInfo,
         ),
         "Msg" -> Json.obj(
           "Type" -> 47,
-          "EMoticonMd5" -> mediaid, //发送表情，可是是表情的MD5或者uploadMedia返回的mediaId
+          "EMoticonMd5" -> mediaid, //发送表情，可以是表情的MD5或者uploadMedia返回的mediaId
           "FromUserName" -> from, //自己ID
           "ToUserName" -> to, //好友ID
           "LocalID" -> LocalID, //与ClientMsgId相同
@@ -1010,8 +1267,8 @@ class Slave @Inject() (userInfo: UserInfo,
               else if(selector.equals("3")){
                 context.parent ! SlaveStop(userInfo.userid)
               }
-              else if(selector.equals("7")){
-                self ! SyncCheck()
+              else if(selector.equals("7") || selector.equals("5")){
+                self ! WXInit()
               }
               else{
                 self ! SyncCheck()
@@ -1035,6 +1292,7 @@ class Slave @Inject() (userInfo: UserInfo,
             case ex: Throwable =>
               ex.printStackTrace()
               log.error(s"error:" + body + s"ex: $ex")
+              self ! SyncCheck()
           }
         }.onFailure { //Todo 这里可能会超时，需要重新更换线路
           case e: Exception =>

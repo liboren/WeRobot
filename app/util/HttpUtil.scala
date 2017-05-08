@@ -45,6 +45,11 @@ class HttpUtil @Inject()(
   implicit val system = ActorSystem()
   implicit val materializer = ActorMaterializer()
 
+//  val userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) "+
+//  "AppleWebKit/537.36 (KHTML, like Gecko) "+
+//  "Chrome/48.0.2564.109 Safari/537.36"
+  val userAgent = "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36"
+
   @throws(classOf[TimeoutException])
   def getJsonRequestSend(
                           methodName: String,
@@ -56,7 +61,7 @@ class HttpUtil @Inject()(
     log.debug(methodName + " parameters=" + parameters)
     val futureResult = ws.
       url(url).
-      withHeaders(("Cookie",cookie)).
+      withHeaders(("Cookie",cookie),("User-Agent",userAgent)).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(10, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
@@ -95,7 +100,7 @@ class HttpUtil @Inject()(
     val cookie = if(cookies == null) "" else cookies.toString
     val futureResult = ws.
       url(url).
-      withHeaders(("Cookie",cookie)).
+      withHeaders(("Cookie",cookie),("User-Agent",userAgent)).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(60, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
@@ -130,6 +135,7 @@ class HttpUtil @Inject()(
 //    log.debug(methodName + " parameters=" + parameters)
     val futureResult = ws.
       url(url).
+      withHeaders(("User-Agent",userAgent)).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(30, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
@@ -169,7 +175,7 @@ class HttpUtil @Inject()(
     log.debug(methodName + " cookies=" + cookies)
     val futureResult = ws.
       url(url).
-      withHeaders(("Cookie",cookies)).
+      withHeaders(("Cookie",cookies),("User-Agent",userAgent)).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(20, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
@@ -195,10 +201,10 @@ class HttpUtil @Inject()(
 
   //上传文件
   def postFile(methodName:String,url:String,filePart:List[MultipartFormData.Part[Source[ByteString, Future[IOResult]]]]) = {
-//    val tmpFile = new File("C:\\Users\\Macbook\\Desktop\\img\\1492680979899.jpeg")
-//    val tmpFile = new File(filePath)
-//    log.debug("文件名："+tmpFile.getName)
-    val futureResult = ws.url(url).post(Source(filePart)).map{ response =>
+
+    val futureResult = ws.url(url).
+      withHeaders(("Content-Type","multipart/form-data"),("User-Agent",userAgent)).
+      post(Source(filePart)).map{ response =>
       if (response.status != 200) {
         val body = response.body.slice(0, 1024)
         val msg = s"postJsonRequestSend http failed url = $url, status = ${response.status}, text = ${response.statusText}, body = $body"
@@ -214,103 +220,45 @@ class HttpUtil @Inject()(
     futureResult
   }
 
-//  @throws(classOf[TimeoutException])
-//  def postFilePartRequestSend(
-//                               methodName: String,
-//                               url: String,
-//                               parameters: List[(String, String)],
-//                               mimeFile: FilePart): Future[JsValue] = {
-////    log.info("Post File Request [" + methodName + "] Processing...")
-////    log.debug(methodName + " url=" + url)
-////    log.debug(methodName + " parameters=" + parameters)
-////    log.debug(methodName + " file=" + mimeFile.getName)
-//
-//
-//    //val client = ws.underlying[AsyncHttpClient]
-//    val client: AsyncHttpClient = ws.underlying
-//
-//    val requestBuilder = new RequestBuilder("POST")
-//    requestBuilder.setUrl(url)
-//    parameters.foreach(kv => requestBuilder.addQueryParam(kv._1, kv._2))
-//    requestBuilder.setFollowRedirect(true)
-//
-//    val targetFile = mimeFile.getFile
-//    val fileName = mimeFile.getFileName
-//
-//    val bs = new ByteArrayOutputStream()
-//    val byteArrayPartF = Future {
-//      val buffer = new Array[Byte](1024 * 8)
-//      val source = new FileInputStream(targetFile)
-//      var c = source.read(buffer)
-//      while (c >= 0) {
-//        bs.write(buffer, 0, c)
-//        c = source.read(buffer)
-//      }
-//      val total = bs.toByteArray
-//      source.close()
-//      bs.close()
-//      new ByteArrayPart(mimeFile.getName, total, null, null, fileName)
-//    }
-//
-//
-//    byteArrayPartF.flatMap { byteArrayPart =>
-//      requestBuilder.addBodyPart(byteArrayPart)
-//      val request = requestBuilder.build()
-//      //log.debug(methodName + " request headers:" + request.getHeaders.iterator().mkString(";"))
-//      val result = Promise[AhcWSResponse]()
-//      val handler = new AsyncCompletionHandler[Response]() {
-//        override def onCompleted(response: Response) = {
-//          result.success(AhcWSResponse(response))
-//          response
-//        }
-//        override def onThrowable(t: Throwable) = {
-//          result.failure(t)
-//        }
-//      }
-//
-//      client.executeRequest(request, handler)
-//      result.future.map { response =>
-//        log.debug(s"response status: ${response.status}")
-//        log.debug(s"response headers: ${response.allHeaders.mkString(";")}")
-//        if (response.status != 200) {
-//          val msg = s"postMimeFileRequestSend http failed url = $url, status = ${response.status}, text = ${response.statusText}, body = ${response.body.substring(0, 1024)}"
-//          log.warn(msg)
-//        }
-//        response.json
-//      }
-//    }
-//  }
 
   @throws(classOf[TimeoutException])
   def getFileRequestSend(
                           methodName: String,
                           url: String,
                           cookies:String,
-                          parameters: List[(String, String)],name:String = null,path:String) = {
+                          parameters: List[(String, String)],name:String = null,path:String,fileType:String) = {
     log.info("Get Request [" + methodName + "] Processing...")
     log.debug(methodName + " url=" + url)
     log.debug(methodName + " parameters=" + parameters)
     val futureResult = ws.
       url(url).
-      withHeaders(("Cookie",cookies)).
+      withHeaders(
+        ("Cookie",cookies),
+        ("User-Agent",userAgent),
+        ("Range","bytes=0-"), //这里不加Range的话获取到的视频内容大小为0
+        ("Accept","*/*")
+      ).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(10, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).
       stream()
     val cur = System.currentTimeMillis()
 
-    futureResult.flatMap{a=>
-      val typeOpt = a.headers.headers.get("Content-Type")
-      log.debug("Content-type:"+typeOpt)
-      val fileType =
-        if(typeOpt.isDefined)
-          try {
-            typeOpt.get.head.split("/")(1)
-          }catch {
-            case e:Exception => "jpeg"
-          }
-        else
-          "jpeg"
+    futureResult.flatMap{ a=>
+      val headers = a.headers.headers
+      val status = a.headers.status
+      log.debug("status:"+status)
+      log.debug("headers:"+headers)
+//      log.debug("file body:"+a.body)
+//      val fileType =
+//        if(typeOpt.isDefined)
+//          try {
+//            typeOpt.get.head.split("/")(1)
+//          }catch {
+//            case e:Exception => "jpeg"
+//          }
+//        else
+//          "jpeg"
       val fileName = if(name == null)cur.toString + "." + fileType else name + "." + fileType
       val dirPath = path
       val dir = new File(dirPath)
@@ -359,6 +307,7 @@ class HttpUtil @Inject()(
 //    log.info(methodName + " postData=" + postStr)
     val futureResult = ws.
       url(url).
+      withHeaders(("User-Agent",userAgent)).
       withFollowRedirects(follow = true).
       withRequestTimeout(Duration(10, scala.concurrent.duration.SECONDS)).
       withQueryString(parameters: _*).

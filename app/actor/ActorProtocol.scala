@@ -51,7 +51,7 @@ class UserInfo{
 //  "voip", "blogappweixin", "weixin", "brandsessionholder", "weixinreminder", "wxid_novlwrv3lqwv11", "gh_22b87fa7cb3c", "officialaccounts", "notification_messages", "wxid_novlwrv3lqwv11", "gh_22b87fa7cb3c", "wxitil", "userexperience_alarm", "notification_messages")
   var SpecialUsers = ""
   var TimeOut:Long = 10 * 1000  // 同步最短时间间隔（单位:秒）
-  var media_count = -1
+  var media_count = 0
 
   var cookie = ""
 }
@@ -67,7 +67,11 @@ case class PushLogin(uin:String,cookie:String)
 case class BeginInit()
 case class SendMessage(msg:String,from:String,to:String)
 case class GetImg(imgUrl:String,path:String,name:String)
+case class GetVideo(msgid:String,path:String,name:String)
+case class GetVoice(msgid:String,path:String,name:String)
 case class SendImgMessage(mediaid: String, from: String, to: String)
+case class SendVideoMessage(mediaid: String, from: String, to: String)
+case class SendAudioMessage(mediaid: String, from: String, to: String)
 case class SendEmotionMessage(mediaid: String, from: String, to: String)
 case class ProcessNewMessage(msgList:Seq[JsValue])
 case class ReceivedNewMessage()
@@ -80,7 +84,7 @@ case class WXInit()
 case class GetTicketAndKey()
 case class SyncCheckKey()
 case class HandleMsg(fromUserName:String,toUserName:String,msgType:Int,msgid:String,msg:JsValue)
-case class DeleteUserFromGroup(memNickName:String,groupNickName:String)
+case class DeleteUserFromGroup(userunionid:String,groupunionid:String)
 case class AddUserToGroup(memName:String,groupNickName:String)
 case class InviteUserToGroup(userunionid:String,groupunionid:String)
 case class SetGroupName(userunionid:String,name:String)

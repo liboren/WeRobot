@@ -20,5 +20,12 @@ object Constants {
   object FilePath {
     val IMG_PATH = "C:\\Users\\Macbook\\Desktop\\img\\" //图片存储路径
     val EMOTION_PATH = "C:\\Users\\Macbook\\Desktop\\emotion\\" //表情存储路径
+    val VIDEO_PATH = "C:\\Users\\Macbook\\Desktop\\video\\" //视频存储路径
+    val AUDIO_PATH = "C:\\Users\\Macbook\\Desktop\\voice\\" //音频存储路径
+  }
+  object FileType{
+    val IMG_TYPE = "jpeg"
+    val VIDEO_TYPE = "mp4"
+    val AUDIO_TYPE = "mp3"
   }
 }
