@@ -32,18 +32,18 @@ var LoginPage=React.createClass({
                 console.log(res);
                 if(res.errCode === 0){
                     console.log(res.result);
-                    if(res.result === "200"){
+                    if(res.result == "200"){
                         console.log("登录成功");
                         window.location.href = "/homepage"
                     }
                     else {
-                        if (res.result === "400") {
+                        if (res.result == "400") {
                             console.log("等待扫码");
                         }
-                        else if (res.result === "408") {
+                        else if (res.result == "408") {
                             console.log("登录超时");
                         }
-                        else if (res.result === "201") {
+                        else if (res.result == "201") {
                             console.log("扫码成功");
                         }
                         else {
