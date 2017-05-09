@@ -587,21 +587,26 @@ class Slave @Inject() (userInfo: UserInfo,
                     memberDao.getMemberByNickName(repoter,groupInfo.get.groupid).map{ memExist =>
                       if(memExist.isDefined){
                         val repoterUserName = memExist.get.userunionid //被举报人的unionid
-                        val userExist = reportMap.get(repoterUserName) //此人是否被举报过
-                        if(userExist.isDefined){
-                          userExist.get.add(memName) //memName 举报人id
+                        if(repoterUserName.equals(userInfo.username)){
+                          log.debug("有人举报自己")
                         }
-                        else{
-                          reportMap.put(repoterUserName,mutable.HashSet(memName))
-                        }
-                        val reportTime = reportMap(repoterUserName).size // 被举报次数
-                        if(reportTime > 3){
-                          self ! SendMessage(s"@$repoter 被举报次数过多，将被移出群聊",userInfo.username,fromUserName)
-                          self ! DeleteUserFromGroup(repoterUserName,fromUserName)
-                          reportMap.remove(repoterUserName)
-                        }
-                        else{
-                          self ! SendMessage(s"@$repoter 被举报$reportTime 次，请注意你的言行！",userInfo.username,fromUserName)
+                        else {
+                          val userExist = reportMap.get(repoterUserName) //此人是否被举报过
+                          if (userExist.isDefined) {
+                            userExist.get.add(memName) //memName 举报人id
+                          }
+                          else {
+                            reportMap.put(repoterUserName, mutable.HashSet(memName))
+                          }
+                          val reportTime = reportMap(repoterUserName).size // 被举报次数
+                          if (reportTime > 3) {
+                            self ! SendMessage(s"@$repoter 被举报次数过多，将被移出群聊", userInfo.username, fromUserName)
+                            self ! DeleteUserFromGroup(repoterUserName, fromUserName)
+                            reportMap.remove(repoterUserName)
+                          }
+                          else {
+                            self ! SendMessage(s"@$repoter 被举报$reportTime 次，请注意你的言行！", userInfo.username, fromUserName)
+                          }
                         }
                       }
                     }
