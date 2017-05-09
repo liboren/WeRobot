@@ -638,8 +638,8 @@ class Slave @Inject() (userInfo: UserInfo,
               log.info(s"\r\n收到文本消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n内容【$text】")
             }
             else{//非群消息
-              if(content.contains("ping")){ // 触发入群关键字
-                self ! SendMessage("pong",userInfo.username,fromUserName)
+              if(content.contains("测试")){
+                self ! SendMessage("收到",userInfo.username,fromUserName)
               }
               if(content.contains("入群")){ // 触发入群关键字
                 val groupunionid = Await.result(groupDao.getGroupByName(debugGroupName,userInfo.userid),10.second).get.groupunionid
