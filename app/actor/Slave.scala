@@ -427,6 +427,7 @@ class Slave @Inject() (userInfo: UserInfo,
           }
           else{
             val errMsg = (js \ "BaseResponse" \ "ErrMsg").as[String]
+            self ! SendMessage("踢了一脚发现踢不动，好气，请群主看着办",userInfo.username,groupunionid)
             log.info(s"踢出群成员失败，群$groupunionid 成员:$userunionid 原因：ret:$ret errormsg:$errMsg")
           }
         } catch {
