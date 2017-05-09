@@ -588,7 +588,7 @@ class Slave @Inject() (userInfo: UserInfo,
                       if(memExist.isDefined){
                         val repoterUserName = memExist.get.userunionid //被举报人的unionid
                         if(repoterUserName.equals(userInfo.username)){
-                          log.debug("有人举报自己")
+                          self ! SendMessage(s"做人不容易，做机器人也不容易，大家互相谅解，共创和谐社会。", userInfo.username, fromUserName)
                         }
                         else {
                           val userExist = reportMap.get(repoterUserName) //此人是否被举报过
