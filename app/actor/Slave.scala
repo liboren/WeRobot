@@ -498,7 +498,7 @@ class Slave @Inject() (userInfo: UserInfo,
           memberName = if (memberInfo.get.userdisplayname.equals("")) memberInfo.get.usernickname else memberInfo.get.userdisplayname
         }
       }
-      log.info(s"收到新消息【$msg】")
+//      log.info(s"收到新消息【$msg】")
         msgType match {
           case 1 => // 文本消息
             if(fromUserName.startsWith("@@")) {//群消息
