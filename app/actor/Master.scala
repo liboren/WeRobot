@@ -64,7 +64,7 @@ class Master @Inject()(httpUtil: HttpUtil,
     case NewUserLogin(userInfo:UserInfo) => // 有新的用户扫码登录
       if(context.child("slave"+userInfo.userid).isDefined) {
         log.debug(s" slave(${userInfo.userid}) is existed.")
-        context.child("slave"+userInfo.userid).get ! BeginInit()
+        context.child("slave"+userInfo.userid).get ! WXInit()
       }
       else {
         val slave = context.actorOf(Slave.props(userInfo, httpUtil,chatApi,keywordResponseDao, memberDao,autoResponseDao, groupDao,userCookieDao), "slave" + userInfo.userid)
