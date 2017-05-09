@@ -56,9 +56,9 @@ class HttpUtil @Inject()(
                           url: String,
                           parameters: List[(String, String)],
                           cookie:String) = {
-//    log.info("Get Request [" + methodName + "] Processing...")
-    log.debug(methodName + " url=" + url)
-    log.debug(methodName + " parameters=" + parameters)
+    log.info("Get Request [" + methodName + "] Processing...")
+//    log.debug(methodName + " url=" + url)
+//    log.debug(methodName + " parameters=" + parameters)
     val futureResult = ws.
       url(url).
       withHeaders(("Cookie",cookie),("User-Agent",userAgent)).
@@ -169,10 +169,10 @@ class HttpUtil @Inject()(
                            cookies:String
   ) = {
     log.info("Post Request [" + methodName + "] Processing...")
-    log.debug(methodName + " url=" + url)
-    log.debug(methodName + " parameters=" + parameters)
-    log.debug(methodName + " postData=" + postData.toString)
-    log.debug(methodName + " cookies=" + cookies)
+//    log.debug(methodName + " url=" + url)
+//    log.debug(methodName + " parameters=" + parameters)
+//    log.debug(methodName + " postData=" + postData.toString)
+//    log.debug(methodName + " cookies=" + cookies)
     val futureResult = ws.
       url(url).
       withHeaders(("Cookie",cookies),("User-Agent",userAgent)).

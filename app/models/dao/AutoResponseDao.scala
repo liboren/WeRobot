@@ -53,7 +53,6 @@ class AutoResponseDao @Inject()(
     * @param userid 用户id
     * @param groupnickname 群组昵称
     * @param state 状态，0-关闭，1-开启
-    * @return 新增的自增id
     * @return 更新结果
     * */
   def changeScheduleResponseList(id:Long,restype:Int,response:String,userid:Long,groupnickname:String,state:Int) = {
