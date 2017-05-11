@@ -12,7 +12,7 @@ import play.api.libs.json.Json
 import play.api.mvc.{Action, Controller}
 
 import scala.concurrent.Future
-
+import scala.concurrent.ExecutionContext.Implicits.global
 /**
  * Created by liuziwei on 2016/3/16.
  */
