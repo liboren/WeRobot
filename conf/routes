@@ -10,6 +10,8 @@ GET     /getuuid                    controllers.Application.getUuidTest
 GET     /checkuserlogin             controllers.Application.checkUserLoginTest(uuid:String)
 GET     /test                       controllers.Application.test
 
+# web
+POST    /loginsubmit                 controllers.Auth.loginSubmit
 # keywordResponse
 POST     /keyword/create             controllers.KeywordResponse.createrKeywordResponse
 POST     /keyword/change             controllers.KeywordResponse.changeKeywordResponseList

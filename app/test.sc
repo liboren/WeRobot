@@ -4,18 +4,20 @@ import java.util.regex.Pattern
 //val str = "window.code=200;window.redirect_uri=\"https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxnewloginpage?ticket=ARiFc26pwMtnUC2PBuJalkaS@qrticket_0&uuid=Yaw97YVBXQ==&lang=zh_CN&scan=1492838576\";"
 //val yaoqing = "你邀请\"方二二\"加入了群聊"
 val jubao = "举报@李暴龙 "
+val content = "&lt;msg fromusername=\"xugaochao2010\" encryptusername=\"v1_942b2e99cbc7a08ce834b7ea15dac57e8ed89ab510f96ba34413e1c8047f9a4c@stran"
 
-val tiren = "你将\"张亮亮\"移出了群聊"
+//val tiren = "你将\"张亮亮\"移出了群聊"
 //val pattern = Pattern.compile("""举报@(.*?) """)
 //val pattern = Pattern.compile("""(.*?)邀请\"(.*?)\"加入了群聊""")
 //val pattern = Pattern.compile(""".*?/oldmsgid&gt;&lt;msgid&gt;(\d*).*?撤回了一条消息.*?""")
-val pattern = Pattern.compile("""(.*?)将"(.*?)"移出了群聊""")
+//val pattern = Pattern.compile("""(.*?)将"(.*?)"移出了群聊""")
+val pattern = Pattern.compile("""&lt;msg fromusername="(.*?)".*?""")
 //val pattern = Pattern.compile("""window.code=(\d*);window.redirect_uri="(.*)";""")
 //val pattern = Pattern.compile(""".*window.code *= *(\d*);|.*window.code *= *(\d*).*window.redirect_uri *= *"(.*)".*""")
-val matcher = pattern.matcher(tiren)
+val matcher = pattern.matcher(content)
 val boolean = matcher.matches()
 val inviter = matcher.group(1)
-val invitee = matcher.group(2)
+//val invitee = matcher.group(2)
 //val invitee2 = matcher.group(3)
 
 //val a = "sss.mp3"
