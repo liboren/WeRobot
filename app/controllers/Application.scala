@@ -51,9 +51,8 @@ class Application @Inject()(
 
   }
 
-  def scan = sysAdmin.async { implicit request => //扫码登录页面
+  def scan(userid:String) = sysAdmin.async { implicit request => //扫码登录页面
     Future.successful(Ok(views.html.scanlogin("WeRobot",None)))
-
   }
 
   def homepage = sysAdmin.async { implicit request => //扫码登录页面
