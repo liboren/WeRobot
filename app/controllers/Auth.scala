@@ -41,7 +41,8 @@ class Auth @Inject()(
               val timestamp = System.currentTimeMillis().toString
               val userId = userInfo.get.userid
                     Ok(successResponse(Json.obj("userid"-> userInfo.get.userid.toString))).withSession(
-                      "userid" -> userId.toString
+                      SessionKey.userId -> userId.toString,
+                      SessionKey.timestamp -> System.currentTimeMillis().toString
                     )
           }else{
             Ok(jsonResponse(10010, "user not exists or password error."))

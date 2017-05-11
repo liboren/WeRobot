@@ -58,7 +58,7 @@ package object controllers {
     }
 
     protected def onUnauthorized(request: RequestHeader) =
-      Results.Redirect("/terra/admin/login").withNewSession
+      Results.Redirect("/").withNewSession
 
     override protected def refine[A](request: Request[A]): Future[Either[Result, AdminRequest[A]]] = {
       authAdmin(request).map {
