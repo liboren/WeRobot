@@ -22,7 +22,7 @@ var LoginPage=React.createClass({
         ajaxPost(upPath, {account: text, password: pwd}, function(res){
             if(res.errCode == 0){
                 var userid = res.userid;
-                window.location.href = "/homepage?userid="+userid;
+                window.location.href = "/scan?userid="+userid;
             }else{
                 alert(res.msg);
             }

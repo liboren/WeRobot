@@ -47,11 +47,17 @@ class Application @Inject()(
 
 
   def index = LoggingAction.async { implicit request => //默认页面，跳转到登录页
-    Future.successful(Ok(views.html.login("WeixinBot",None)))
+    Future.successful(Ok(views.html.login("WeRobot",None)))
 
   }
+
+  def scan = sysAdmin.async { implicit request => //扫码登录页面
+    Future.successful(Ok(views.html.scanlogin("WeRobot",None)))
+
+  }
+
   def homepage = sysAdmin.async { implicit request => //扫码登录页面
-    Future.successful(Ok(views.html.homepage("WeixinBot",None)))
+    Future.successful(Ok(views.html.homepage("WeRobot",None)))
 
   }
   def test = LoggingAction.async { implicit request =>

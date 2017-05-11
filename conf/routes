@@ -4,6 +4,7 @@
 
 # Home page
 GET     /                           controllers.Application.index
+GET     /scan                       controllers.Application.scan
 GET     /homepage                   controllers.Application.homepage
 GET     /getuuid                    controllers.Application.getUuidTest
 #GET     /get2dcode                  controllers.Application.get2Dcode
