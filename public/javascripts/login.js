@@ -35,7 +35,7 @@ var LoginPage=React.createClass({
         return (
             <div id="login-app">
                 <div className="loginPage">
-                    <div className="tongtu" style={{backgroundImage:picurl}}>
+                    <div className="tongtu">
                     <div className="formArea">
                         <div>
                             <div style={{float: 'left',width: '30%'}}>
@@ -83,7 +83,7 @@ var LoginPage=React.createClass({
                             </p>
                         </div>
                         <div className="bottomBar">
-                            <p>版权所有: 北京时代网星科技有限公司&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;增值电信业务经营许可证&nbsp;B2-20040082号</p>
+                            <p>版权所有: 暴龙科技有限公司&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;增值电信业务经营许可证&nbsp;B2-20040082号</p>
                         </div>
 
                     </div>
