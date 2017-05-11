@@ -7,19 +7,6 @@ var LoginPage=React.createClass({
             progressbarlist:[]
         });
     },
-    componentWillMount:function(){
-        ajaxGet("/terra/background", function(res){
-            console.log(res);
-            if(res.errCode == 0){
-                this.setState({progressbarlist:res.data});
-            }else{
-                alert(msg);
-            }
-        }.bind(this));
-    },
-    handleClickLogo:function(){
-        location.href="/";
-    },
     gmLogin:function(){
         var text = $("#account").val().trim();
         var pwd = $("#password").val();
