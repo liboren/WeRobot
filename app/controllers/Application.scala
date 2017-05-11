@@ -42,6 +42,7 @@ class Application @Inject()(
   private val log = Logger(this.getClass)
   implicit val timeout = Timeout(30.seconds)
 
+  val sysAdmin = actionUtils.LoggingAction andThen AdminAction
   System.setProperty("jsse.enableSNIExtension", "false")
 
 
@@ -49,7 +50,7 @@ class Application @Inject()(
     Future.successful(Ok(views.html.login("WeixinBot",None)))
 
   }
-  def homepage = LoggingAction.async { implicit request => //扫码登录页面
+  def homepage = sysAdmin.async { implicit request => //扫码登录页面
     Future.successful(Ok(views.html.homepage("WeixinBot",None)))
 
   }

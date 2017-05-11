@@ -1,10 +1,8 @@
-import sbt.Keys.libraryDependencies
-
 name := "WeRobot"
 
 version := "1.0"
 
-lazy val `WeChatBoot` = (project in file(".")).enablePlugins(PlayScala)
+lazy val `WeRobot` = (project in file(".")).enablePlugins(PlayScala)
 
 scalaVersion := "2.11.7"
 
