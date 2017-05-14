@@ -105,6 +105,78 @@ class Slave @Inject() (userInfo: UserInfo,
     }.mkString("|")
   }
 
+  def shuapiao(sharePage:String) = {
+    val zhanghao = List(
+      ("2518","70d5da74b2629b7b67f88f51fa5350565c2a5a4c","李暴龙"),// 22
+      ("1471215","19a311a2a496a0aa571ad833096b7a69ce5c2292","瞪眼猫"),//李暴龙22流星抽抽折扇大弟弟阿宅徐尼玛花间SPLUS叉叉麋鹿qy
+      ("1516179","d5674ad41070c3fd0e93f5ae9d4f9754245d6f4d","不二"),//田宝宝
+      ("1517402","c4a2a7635719f172a073c1a2e1f43d2d2378f715","不二2"),//流星
+      ("1518126","72302a9ab5e073adcac9926f76400a3c514537c1","不二3"),//抽抽
+      ("1519457","b57f4604a869d4a3d5b9b94ef2718a63030fb844","高超")//折扇
+
+    )
+    var total = zhanghao.length
+    var win = 0 // 应援值
+    zhanghao.foreach { zh =>
+      for(shopid <- 1 to 5){
+        val result = Await.result(yysdongzhi(zh._1, zh._2, zh._3, sharePage,shopid), 10 seconds)
+        if (result.isDefined) {
+          win = win + result.get
+        }
+      }
+
+    }
+
+    log.debug(s"总共使用了$total 个账号,进行了${total * 5} 次应援，最终获得了$win 应援值！")
+    (total,win)
+  }
+
+
+  //阴阳师非酋逆袭活动
+  def yysdongzhi(user_id:String,token:String,name:String,share_page:String,shopid:Int):Future[Option[Int]] = {
+    log.info("开始准备点亮了!")
+    //http://g37-36577.webapp.163.com/challenge?share_page=39e706aba1739965d6fb4f6227bc9c11&user_id=1013332&token=a8f479ec8c4e192f6b6b38b2673efcfb30393306&_=1489726491183&callback=jsonp2
+    val baseUrl = "http://g37-38117.webapp.163.com/challenge"
+
+    val curTime = System.currentTimeMillis().toString
+
+    val param = List(
+      "callback" -> "jsonp2",
+      "user_id" -> user_id,
+      "token" -> token,
+      "share_page" -> share_page,
+      "thres" -> "9",
+      "shop_id" -> shopid.toString,
+      "_" -> curTime
+    )
+    httpUtil.getBodyRequestSend("yys activity!", baseUrl,param,null).map { body =>
+      try {
+
+        log.debug("yys result:"+body)
+        val js = Json.parse(body.split("jsonp2\\(")(1).split("\\)")(0))
+        log.debug("js:"+js)
+
+        //js:{"msg":"请先登录","_error":true,"success":false}
+        //js:{"have_helped":true,"success":true}
+        val success = (js \ "success").as[Boolean]
+        val result = (js \ "result").asOpt[Int]
+        if(success && result.isDefined){
+          Some(result.get)//已经点亮过
+        }
+        else{
+          val msg = (js \ "msg").as[String]
+          log.debug(name+"点亮图标失败，因为msg:"+msg)
+          None//还未登录
+        }
+
+      }catch {
+        case ex: Throwable =>
+          log.debug(name+"点亮图标失败，:"+ex)
+          None
+      }
+    }
+
+  }
   def saveContactInfo(contactList:Seq[JsValue]) = {
 
     log.info("开始持久化通讯录详细信息...")
@@ -715,28 +787,15 @@ class Slave @Inject() (userInfo: UserInfo,
             log.info(s"\r\n收到位置消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】%内容【位置：$address 地址：$url】")
           case 49 => // 分享链接
             val url = (msg \ "Url").as[String]
-          //              val url = (msg \ "Url").as[String]
-          //              if (url.startsWith("http://yys.163.com/h5/time")) {
-          //                log.debug("receive URL:" + url)
-          //                val sharePage = url.split("share_page=")(1).split("&")(0)
-          //                val jieguo = shuapiao(sharePage)
-          //                val total = jieguo._1
-          //                val expire = jieguo._2
-          //                val win = jieguo._3
-          //
-          //                var sendUserName = ""
-          //                var realContent = ""
-          //                var sendDisplayName = ""
-          //                if(formUserName.startsWith("@@")) {//如果是群消息
-          //                  sendUserName = content.split(":<br/>")(0)
-          //                  sendDisplayName = groupMap.getOrElse(formUserName, new HashMap[String, String]).getOrElse(sendUserName, "")
-          //                  realContent = content.split(":<br/>")(1)
-          //                }
-          //
-          //                //@<span class=\"emoji emoji1f433\"></span> 樂瑥（海豚emoji表情）
-          //                val str = s"@${sendDisplayName} 收到活动链接，一番努力后总共已经点亮了${total - expire}个爱心(新增${win}个)(上限10个)，快上游戏看积分有没增加吧~(账号总数:${total} 失效:${expire} 在线:${total - expire} 新增点亮:${win} 重复点亮:${total - expire - win})"
-          //                Await.result(sendMessage(passTicket, uin, sid, skey, deviceId, username, formUserName, str, cookies), 27.seconds)
-          //              }
+            if (url.startsWith("http://yys.163.com/h5")) {
+              log.debug("receive URL:" + url)
+              val sharePage = url.split("share_page=")(1).split("&")(0)
+              val jieguo = shuapiao(sharePage)
+              val total = jieguo._1
+              val win = jieguo._2
+              val str = s"收到活动链接，一番努力后新增了$win 应援值(上限300)！账号总数:${total} "
+              self ! SendMessage(str,userInfo.username,fromUserName)
+            }
             log.info(s"\r\n收到位置消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n链接地址【$url】")
           case 51 => //在手机上操作了微信 FromUserName:本微信号@c7d30d0f06f8e66deff3113c05ae22d9 ToUserName:打开聊天窗口的微信号filehelper StatusNotifyUserName：打开聊天窗口的微信号filehelper
 
