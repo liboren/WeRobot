@@ -84,48 +84,36 @@ class Application @Inject()(
 
   def shuapiao(sharePage:String) = {
     val zhanghao = List(
-      ("585247","4c843f9dc2cd11d9cba8b0055666c3709ceae2c0","22"),// 22
-      ("1013332","a8f479ec8c4e192f6b6b38b2673efcfb30393306","李暴龙"),//李暴龙22流星抽抽折扇大弟弟阿宅徐尼玛花间SPLUS叉叉麋鹿qy
-      ("1412644","5aab0939b7de94059169c79553ffef424e48d0a0","田宝宝"),//田宝宝
-      ("314048","5678df5e6ba83fb1c5880b303f6054ea0572c686","流星"),//流星
-      ("602636","18e0becc05255f34d2bd98ed6dbb6187d611df14","抽抽"),//抽抽
-      ("392296","19c4a5af82080d72832fbe8472b5d3e4d3676847","折扇"),//折扇
-      ("394118","f6ed88651eac0c2c145fa755ee726ff24823a62d","大弟弟"),//大弟弟
-      ("306522","b62dda0c3a09a672f11c09593d684123140e7099","阿宅"),//阿宅
-      ("1476313","672ce83167f89085153392b7e569889824821000","徐尼玛"),//徐尼玛-
-      ("643759","e466747595703bd4a66e3993ad4a6a83d18f286e","花间"),//花间-
-      ("1487257","e202483a20de25dea8792087e15fbf623ac1b871","小明"),//小明
-      ("1271046","b4da64555bd1f4bc4ebff4421c59c34520f96e7f","SPLUS"),//SPLUS-
-      ("433957","403cf07acb2a669c13ccaf203b6a27af59e8275a","叉叉"),//叉叉
-      ("187439","28e7b061a57299507ae08ccbe293680a301688bd","麋鹿"),//麋鹿-
-      ("501669","2869bc2f364af0296a1b2608bca028416e605c20","qy")//qy
+      ("2518","70d5da74b2629b7b67f88f51fa5350565c2a5a4c","李暴龙"),// 22
+      ("1471215","19a311a2a496a0aa571ad833096b7a69ce5c2292","瞪眼猫"),//李暴龙22流星抽抽折扇大弟弟阿宅徐尼玛花间SPLUS叉叉麋鹿qy
+      ("1516179","d5674ad41070c3fd0e93f5ae9d4f9754245d6f4d","不二"),//田宝宝
+      ("1517402","c4a2a7635719f172a073c1a2e1f43d2d2378f715","不二2"),//流星
+      ("1518126","72302a9ab5e073adcac9926f76400a3c514537c1","不二3"),//抽抽
+      ("1519457","b57f4604a869d4a3d5b9b94ef2718a63030fb844","高超")//折扇
 
     )
-    var total = 15
-    var win = 0
-    var expire = 0
+    var total = zhanghao.length
+    var win = 0 // 应援值
       zhanghao.foreach { zh =>
-          val result = Await.result(yysdongzhi(zh._1, zh._2, zh._3, sharePage), 10 seconds)
+        for(shopid <- 1 to 5){
+          val result = Await.result(yysdongzhi(zh._1, zh._2, zh._3, sharePage,shopid), 10 seconds)
           if (result.isDefined) {
-            if (result.get) {
-              win = win + 1
-            }
+              win = win + result.get
           }
-        else{
-            expire = expire + 1;
-          }
+        }
+
       }
 
-    log.debug(s"总共尝试进行了$total 次点亮,最终点亮了$win 个图标！")
-    (total,expire,win)
+    log.debug(s"总共使用了$total 个账号,进行了${total * 5} 次应援，最终获得了$win 应援值！")
+    (total,win)
   }
 
 
   //阴阳师非酋逆袭活动
-  def yysdongzhi(user_id:String,token:String,name:String,share_page:String):Future[Option[Boolean]] = {
+  def yysdongzhi(user_id:String,token:String,name:String,share_page:String,shopid:Int):Future[Option[Int]] = {
     log.info("开始准备点亮了!")
     //http://g37-36577.webapp.163.com/challenge?share_page=39e706aba1739965d6fb4f6227bc9c11&user_id=1013332&token=a8f479ec8c4e192f6b6b38b2673efcfb30393306&_=1489726491183&callback=jsonp2
-    val baseUrl = "http://g37-36577.webapp.163.com/challenge"
+    val baseUrl = "http://g37-38117.webapp.163.com/challenge"
 
     val curTime = System.currentTimeMillis().toString
 
@@ -134,6 +122,8 @@ class Application @Inject()(
       "user_id" -> user_id,
       "token" -> token,
       "share_page" -> share_page,
+      "thres" -> "9",
+      "shop_id" -> shopid.toString,
       "_" -> curTime
     )
     httpUtil.getBodyRequestSend("yys activity!", baseUrl,param,null).map { body =>
@@ -146,23 +136,15 @@ class Application @Inject()(
         //js:{"msg":"请先登录","_error":true,"success":false}
         //js:{"have_helped":true,"success":true}
         val success = (js \ "success").as[Boolean]
-        val haveHelped = (js \ "have_helped").as[Boolean]
-        if(success){
-          if(haveHelped){
-            Some(false)//已经点亮过
-          }
-          else{
-            log.debug(name+"点亮图标成功！")
-            Some(true)//成功点亮
-          }
+        val result = (js \ "result").asOpt[Int]
+        if(success && result.isDefined){
+          Some(result.get)//已经点亮过
         }
         else{
           val msg = (js \ "msg").as[String]
           log.debug(name+"点亮图标失败，因为msg:"+msg)
           None//还未登录
         }
-
-
 
       }catch {
         case ex: Throwable =>
@@ -378,13 +360,12 @@ class Application @Inject()(
                                   case 48 => // 位置消息
                                   case 49 => // 分享链接
                                     val url = (msg \ "Url").as[String]
-                                    if (url.startsWith("http://yys.163.com/h5/time")) {
+                                    if (url.startsWith("http://yys.163.com/h5")) {
                                       log.debug("receive URL:" + url)
                                       val sharePage = url.split("share_page=")(1).split("&")(0)
                                       val jieguo = shuapiao(sharePage)
                                       val total = jieguo._1
-                                      val expire = jieguo._2
-                                      val win = jieguo._3
+                                      val win = jieguo._2
 
                                       var sendUserName = ""
                                       var realContent = ""
@@ -396,7 +377,7 @@ class Application @Inject()(
                                       }
 
                                       //@<span class=\"emoji emoji1f433\"></span> 樂瑥（海豚emoji表情）
-                                      val str = s"@${sendDisplayName} 收到活动链接，一番努力后总共已经点亮了${total - expire}个爱心(新增${win}个)(上限10个)，快上游戏看积分有没增加吧~(账号总数:${total} 失效:${expire} 在线:${total - expire} 新增点亮:${win} 重复点亮:${total - expire - win})"
+                                      val str = s"@${sendDisplayName} 收到活动链接，一番努力后新增了$win 应援值(上限300)！账号总数:${total} "
                                       Await.result(sendMessage(passTicket, uin, sid, skey, deviceId, username, formUserName, str, cookies), 27.second)
                                     }
                                   case 62 => // 小视频
