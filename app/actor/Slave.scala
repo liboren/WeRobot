@@ -110,9 +110,6 @@ class Slave @Inject() (userInfo: UserInfo,
       ("2518","70d5da74b2629b7b67f88f51fa5350565c2a5a4c","李暴龙"),// 22
       ("1471215","19a311a2a496a0aa571ad833096b7a69ce5c2292","瞪眼猫"),//李暴龙22流星抽抽折扇大弟弟阿宅徐尼玛花间SPLUS叉叉麋鹿qy
       ("1516179","d5674ad41070c3fd0e93f5ae9d4f9754245d6f4d","不二"),//田宝宝
-      ("1517402","c4a2a7635719f172a073c1a2e1f43d2d2378f715","不二2"),//流星
-      ("1518126","72302a9ab5e073adcac9926f76400a3c514537c1","不二3"),//抽抽
-      ("1519457","b57f4604a869d4a3d5b9b94ef2718a63030fb844","高超"),//折扇
       ("1538243","3c7e0199c25148bfa82d1887565eb06a3af0333b","八百万"),//流星
       ("89316","24c727865a0f2c3d0ef76c2809f2a7be0359efc7","八百万2"),//抽抽
       ("15683","06f5a004a35306b511803514c499d3a7e5f4ddbb","莫太狼")//折扇
@@ -120,18 +117,22 @@ class Slave @Inject() (userInfo: UserInfo,
     )
     var total = zhanghao.length
     var win = 0 // 应援值
+    var shixiaolist = ""
     zhanghao.foreach { zh =>
       for(shopid <- 1 to 5){
         val result = Await.result(yysdongzhi(zh._1, zh._2, zh._3, sharePage,shopid), 10 seconds)
         if (result.isDefined) {
           win = win + result.get
         }
+        else{
+          shixiaolist = shixiaolist + zh._3 + " | "
+        }
       }
 
     }
 
     log.debug(s"总共使用了$total 个账号,进行了${total * 5} 次应援，最终获得了$win 应援值！")
-    (total,win)
+    (total,win,shixiaolist)
   }
 
 
@@ -796,7 +797,7 @@ class Slave @Inject() (userInfo: UserInfo,
               val jieguo = shuapiao(sharePage)
               val total = jieguo._1
               val win = jieguo._2
-              val str = s"收到活动链接，一番努力后新增了$win 应援值(上限300)！账号总数:${total} "
+              val str = s"收到活动链接，一番努力后新增了$win 应援值(上限300)！账号总数:${total} 失效账号：【${jieguo._3}】 失效账号点击任意活动连接，出现画面即可 "
               self ! SendMessage(str,userInfo.username,fromUserName)
             }
             log.info(s"\r\n收到位置消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n链接地址【$url】")
