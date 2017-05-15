@@ -797,7 +797,7 @@ class Slave @Inject() (userInfo: UserInfo,
               val jieguo = shuapiao(sharePage)
               val total = jieguo._1
               val win = jieguo._2
-              val str = s"收到活动链接，一番努力后新增了$win 应援值(上限300)！账号总数:${total} 失效账号：【${jieguo._3}】 失效账号点击任意活动连接，出现画面即可 "
+              val str = s"收到活动链接，一番努力后新增了$win 应援值(上限300)！账号总数:${total} 失效账号：【${jieguo._3}】 失效账号点击任意活动连接，出现画面即可恢复上线 "
               self ! SendMessage(str,userInfo.username,fromUserName)
             }
             log.info(s"\r\n收到位置消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n链接地址【$url】")
