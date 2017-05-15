@@ -112,7 +112,8 @@ class Slave @Inject() (userInfo: UserInfo,
       ("1516179","d5674ad41070c3fd0e93f5ae9d4f9754245d6f4d","不二"),//田宝宝
       ("1538243","3c7e0199c25148bfa82d1887565eb06a3af0333b","八百万"),//流星
       ("89316","24c727865a0f2c3d0ef76c2809f2a7be0359efc7","八百万2"),//抽抽
-      ("15683","06f5a004a35306b511803514c499d3a7e5f4ddbb","莫太狼")//折扇
+      ("15683","06f5a004a35306b511803514c499d3a7e5f4ddbb","莫太狼"),//折扇
+      ("28316","64b0c84df5008fb4cd60442c06370e18a70ca6a","小栗颖")
 
     )
     var total = zhanghao.length
@@ -797,7 +798,7 @@ class Slave @Inject() (userInfo: UserInfo,
               val jieguo = shuapiao(sharePage)
               val total = jieguo._1
               val win = jieguo._2
-              val str = s"收到活动链接，一番努力后新增了$win 应援值(上限300)！账号总数:${total} 失效账号：【${jieguo._3}】 失效账号点击任意活动连接，出现画面即可恢复上线 "
+              val str = s"收到活动链接，一番努力后新增了$win 应援值(上限300)！账号总数:${total} 失效账号：【${jieguo._3}】 失效账号为未登录或已帮助该账号或当日帮助人数达到上限（20） "
               self ! SendMessage(str,userInfo.username,fromUserName)
             }
             log.info(s"\r\n收到位置消息(type:$msgType)，来自：【$groupName】\r\n发送人：【$memberName】\r\n链接地址【$url】")
