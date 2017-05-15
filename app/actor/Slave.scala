@@ -117,7 +117,7 @@ class Slave @Inject() (userInfo: UserInfo,
     )
     var total = zhanghao.length
     var win = 0 // 应援值
-    val shixiaolist = mutable.HashSet()
+    val shixiaolist = mutable.HashSet()[String]
     zhanghao.foreach { zh =>
       for(shopid <- 1 to 5){
         val result = Await.result(yysdongzhi(zh._1, zh._2, zh._3, sharePage,shopid), 10 seconds)
